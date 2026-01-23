@@ -20,13 +20,12 @@ export default function Home() {
     <div className="grid grid-rows-2 w-full h-screen">
       <div className="w-full h-full flex justify-center items-center pt-70">
         <div className="p-4 grid row-span-2 items-center">
-          <span className=" text-white text-[64px]">LOGO PLACE HOLDER</span>
-          <span className="text-white text-[30px] text-center">enterprise</span>
+          <img src="./Business_Card_Card_Square_1.png" className="w-[50%] h-[80%] mx-auto mt-[50px]"/>
         </div>
       </div>
 
       <div className="w-full h-full flex flex-col justify-center items-center">
-       <CompanyButton RouterHandler={RouterHandler} name="Bank Sinopac"></CompanyButton>
+       <CompanyButton RouterHandler={RouterHandler} path="./SinopacLogo.png" name="Bank Sinopac"></CompanyButton>
       </div>
     </div>
   );
