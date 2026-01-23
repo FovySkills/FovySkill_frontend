@@ -9,7 +9,7 @@ export default function CompanyButton({RouterHandler,name}:CompanyButtonProps)
 {
     return(
         <>
-         <button onClick={RouterHandler}
+         <button onClick={RouterHandler} type="button"
           className=" my-4 bg-[rgba(51,51,51,0.8)] w-[17%] h-[5vh] shadow-white shadow-[0_0_20px_rgba(255,255,255,0.8)] rounded-[40px] border-2
                     hover:scale-125 ease-in-out duration-200 "
         >
