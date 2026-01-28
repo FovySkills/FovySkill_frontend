@@ -10,18 +10,15 @@ export default function UserProperty({ isVisible, setVisible }: UserPropertyProp
     <AnimatePresence>
       {isVisible && (
         <>
-          {/* 1. 背景遮罩 (Backdrop)：點擊此處會關閉面板 */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setVisible(false)} // 點擊外面關閉
+            onClick={() => setVisible(false)}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
           />
 
-          {/* 2. 面板本體 */}
           <motion.div
-            // 從下往上彈入，離開時也往下載
             initial={{ y: "100%", x: "-50%", opacity: 0 }}
             animate={{ y: "0%", x: "-50%", opacity: 1 }}
             exit={{ y: "100%", x: "-50%", opacity: 0 }}
@@ -29,7 +26,6 @@ export default function UserProperty({ isVisible, setVisible }: UserPropertyProp
             className="fixed bottom-0 left-1/2 z-50 w-full max-w-6xl p-6"
           >
             <div 
-              // 阻止點擊面板內部時觸發外部的關閉事件
               onClick={(e) => e.stopPropagation()} 
               className="bg-[#1c1c1c]/95 backdrop-blur-2xl border border-white/10 p-10 rounded-t-[50px] shadow-2xl text-white"
             >
