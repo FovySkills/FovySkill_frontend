@@ -38,7 +38,7 @@ export default function SelectionCard({title,description,icon,image,ButtonAction
                     place holder
                 </div>
             </div>
-            <div>
+            <div className="w-full">
                 <DashboardButton title={title} ButtonAction={ButtonAction} buttonLayout={buttonLayout} />
             </div>
         </div>
