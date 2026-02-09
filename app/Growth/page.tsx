@@ -2,13 +2,11 @@
 
 import React, { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import DropdownButton from './Component/DropDownButton';
 import OptionBar from './Component/OptionBar';
 import ServicesBar from './Component/ServicesBar';
-import Sidebar from './Component/SideMenu';
-import DetailCard from './Component/DetailCard';
+import Sidebar from './Component/Sidebar';
 import SkillMap from './Component/SkillMap';
-
+import Growth from './Component/Growth';
 
 //-----------------------------mock data-------------------------------------------
 const defaultData = {
@@ -46,9 +44,19 @@ const defaultData = {
 export default function SkillMapPage() {
     const router = useRouter()
 
+    function RouterHandler() {
+    // 检查浏览器 cookie
+    const hasToken = document.cookie.includes("token=");
+    router.push("/Dashboard")
+    // if (!hasToken) {
+    //   router.push("/login"); // 没 cookie 就跳去 login
+    // } else {
+    //   router.push("/dashboard"); // 有 cookie 去 dashboard
+    // }
+  }
+
     const [showSkillMap, setShowSkillMap] = useState<boolean>(true)
     const [showGrowth, setShowGrowth] = useState<boolean>(false)
-    const [showCompare, setCompare] = useState<boolean>(false)
     const [showSidebar, setShowSidebar] = useState<boolean>(false)
     //----------------------------------------------------graph data --------------------------------------------
     const [graphData, setGraphData] = useState<string>(JSON.stringify(defaultData));
@@ -78,63 +86,41 @@ export default function SkillMapPage() {
     }, []);
 
     //--------------------------------------------component controller----------------------------------------------
+
     function showSkillMapController() {
         setShowSkillMap(true)
         setShowGrowth(false)
-        setCompare(false)
     }
     function showGrowthController() {
         setShowSkillMap(false)
         setShowGrowth(true)
-        setCompare(false)
     }
-    function showCompareController() {
-        setShowSkillMap(false)
-        setShowGrowth(false)
-        setCompare(true)
-    }
+
     return (
         <>
             {!showSidebar && <SidebarButton showSidebar={showSidebar} setShowSidebar={setShowSidebar}></SidebarButton>}
             <Sidebar showSidebar={showSidebar} setShowSidebar={setShowSidebar}></Sidebar>
             <div className=' h-screen w-full grid-rows-[1fr_8fr_1fr] grid'>
                 <div className='flex justify-between w-full' >
-                    <OptionBar showSkillMap={showSkillMap} showGrowth={showGrowth} showCompare={showCompare} onSkillMap={showSkillMapController} onGrowth={showGrowthController} onCompare={showCompareController}></OptionBar>
+                    <OptionBar showSkillMap={showSkillMap} showGrowth={showGrowth} onSkillMap={showSkillMapController} onGrowth={showGrowthController}></OptionBar>
                 </div>
                 <div className="">
                     {showSkillMap && <SkillMap graphData={graphData}/>}
-                    {showGrowth && <DetailCard title="" score={110} metrics={[{ label: "aa", value: 11 }]} />}
-                    {showCompare && <></>}
+                    {showGrowth && <Growth graphData={graphData}/>}
                 </div>
                 <div className="h-full w-full">
-                    <ServicesBar></ServicesBar>
+                    <ServicesBar RouterHandler={RouterHandler}></ServicesBar>
                 </div>
             </div>
         </>
     );
 }
 
-function SidebarButton({ showSidebar, setShowSidebar }: { showSidebar: boolean, setShowSidebar: React.Dispatch<React.SetStateAction<boolean>> }) {
+function SidebarButton({ showSidebar, setShowSidebar } : { showSidebar: boolean, setShowSidebar: React.Dispatch<React.SetStateAction<boolean>> }) {
     return (
-
-        <button
-            onClick={() => setShowSidebar(true)}
-            aria-label="Open sidebar"
-            className="
-        fixed right-0 top-1/2 -translate-y-1/2
-        w-10 h-16
-        rounded-l-full
-        bg-white/10 backdrop-blur
-        border border-white/30 border-r-0
-        text-white text-xl
-        flex items-center justify-center
-        shadow-[-6px_0_16px_rgba(0,0,0,0.8)]
-        transition-all duration-200
-        hover:bg-white/20 hover:scale-105
-        active:scale-95
-        z-40
-        "
-        >
+        <button onClick={() => setShowSidebar(true)} aria-label="Open sidebar" className="fixed right-0 top-1/2 -translate-y-1/2 w-10 h-16 rounded-l-full bg-white/10 backdrop-blur
+        border border-white/30 border-r-0 text-white text-xl flex items-center justify-center shadow-[-6px_0_16px_rgba(0,0,0,0.8)]
+        transition-all duration-200 hover:bg-white/20 hover:scale-105 active:scale-95 z-40">
             {showSidebar ? ">" : "<"}
         </button>
     )
