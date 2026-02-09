@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Home, Trash2, Plus, RotateCw } from 'lucide-react';
 
 export default function SkillMapPage() {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="min-h-screen max-h-screen bg-[#1a1a1a] text-white flex overflow-hidden relative font-sans">
