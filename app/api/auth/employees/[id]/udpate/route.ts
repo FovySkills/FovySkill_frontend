@@ -11,8 +11,9 @@ export async function PUT(req: Request, ctx: { params: { id: string } }) {
   if (!hasEmployeeAdminRole(access)) return jsonFail("Forbidden", 403);
 
   const body = await req.json().catch(() => null);
+    const { id } = await ctx.params;
 
-  const { res, data } = await gatewayFetch(`/api/auth/employees/${encodeURIComponent(ctx.params.id)}/update/`, {
+  const { res, data } = await gatewayFetch(`/api/auth/employees/${encodeURIComponent(id)}/update/`, {
     baseUrl: SERVICES.auth.baseUrl,
     method: "PUT",
     accessToken: access,

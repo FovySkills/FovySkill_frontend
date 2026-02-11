@@ -9,8 +9,9 @@ export async function DELETE(_: Request, ctx: { params: { id: string } }) {
   const access = await getValidAccessToken();
   if (!access) return jsonFail("Unauthorized", 401);
   if (!hasEmployeeAdminRole(access)) return jsonFail("Forbidden", 403);
+const { id } = await ctx.params;
 
-  const { res, data } = await gatewayFetch(`/api/auth/employees/${encodeURIComponent(ctx.params.id)}/delete/`, {
+  const { res, data } = await gatewayFetch(`/api/auth/employees/${encodeURIComponent(id)}/delete/`, {
     baseUrl: SERVICES.auth.baseUrl,
     method: "DELETE",
     accessToken: access,

@@ -7,10 +7,12 @@ import { hasEmployeeAdminRole } from "@/app/lib/rbac";
 
 export async function GET(_: Request, ctx: { params: { id: string } }) {
   const access = await getValidAccessToken();
+  const { id } = await ctx.params;
+
   if (!access) return jsonFail("Unauthorized", 401);
   if (!hasEmployeeAdminRole(access)) return jsonFail("Forbidden", 403);
 
-  const { res, data } = await gatewayFetch(`/api/auth/employees/${encodeURIComponent(ctx.params.id)}/`, {
+  const { res, data } = await gatewayFetch(`/api/auth/employees/${encodeURIComponent(id)}/`, {
     baseUrl: SERVICES.auth.baseUrl,
     method: "GET",
     accessToken: access,
