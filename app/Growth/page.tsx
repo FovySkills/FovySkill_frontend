@@ -57,8 +57,7 @@ export default function SkillMapPage() {
   const [checkingLogin, setCheckingLogin] = useState(false);
   const [loadingGraph, setLoadingGraph] = useState(false);
 
-  const fallbackGraphData = useMemo(() => JSON.stringify([defaultData]), []);
-  // const fallbackGraphData :any= []
+  const fallbackGraphData = useMemo(() => JSON.stringify(defaultData), []);
 
   function RouterHandler() {
     router.push("/Dashboard");
@@ -161,6 +160,7 @@ export default function SkillMapPage() {
   }, [checkingLogin]);
 
   const finalGraphData = graphData ?? fallbackGraphData;
+  console.log(finalGraphData)
 
   if (checkingLogin) {
     return (
