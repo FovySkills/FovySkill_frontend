@@ -4,8 +4,9 @@ import { gatewayFetch } from "@/app/lib/gatewayFetch";
 import { jsonFail, jsonOk } from "@/app/lib/apiResponse";
 import { getValidAccessToken } from "@/app/lib/auth";
 import { hasEmployeeAdminRole } from "@/app/lib/rbac";
+import { NextRequest } from "next/server";
 
-export async function GET() {
+export async function GET(_req: NextRequest) {
   const access = await getValidAccessToken();
   if (!access) return jsonFail("Unauthorized", 401);
   if (!hasEmployeeAdminRole(access)) return jsonFail("Forbidden", 403);
