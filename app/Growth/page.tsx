@@ -108,56 +108,56 @@ export default function SkillMapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (checkingLogin) return;
+  // useEffect(() => {
+  //   if (checkingLogin) return;
 
-    let alive = true;
+  //   let alive = true;
 
-    async function loadGraphIfNeeded() {
-      const TTL_MS = 5 * 60 * 1000; // 5 min
-      const isFresh = updatedAt && Date.now() - updatedAt < TTL_MS;
+  //   async function loadGraphIfNeeded() {
+  //     const TTL_MS = 5 * 60 * 1000; // 5 min
+  //     const isFresh = updatedAt && Date.now() - updatedAt < TTL_MS;
 
-      if (graphData && isFresh) return;
+  //     if (graphData && isFresh) return;
 
-      setLoadingGraph(true);
-      try {
-        const res = await fetch("/api/tree/latest", {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-        });
+  //     setLoadingGraph(true);
+  //     try {
+  //       const res = await fetch("/api/tree/latest", {
+  //         method: "GET",
+  //         credentials: "include",
+  //         cache: "no-store",
+  //       });
 
-        if (!res.ok) {
-          if (res.status === 401) {
-            clearGraph();
-            router.replace("/");
-            return;
-          }
-          throw new Error(`Request failed: ${res.status}`);
-        }
+  //       if (!res.ok) {
+  //         if (res.status === 401) {
+  //           clearGraph();
+  //           router.replace("/");
+  //           return;
+  //         }
+  //         throw new Error(`Request failed: ${res.status}`);
+  //       }
 
-        const json = await res.json();
-        const gd = json?.data ? JSON.stringify(json.data) : null;
+  //       const json = await res.json();
+  //       const gd = json?.data ? JSON.stringify(json.data) : null;
 
-        if (!alive) return;
+  //       if (!alive) return;
 
-        if (gd) setGraphData(gd);
-        else setGraphData(fallbackGraphData);
-      } catch {
-        if (!alive) return;
-        setGraphData(fallbackGraphData);
-      } finally {
-        if (!alive) return;
-        setLoadingGraph(false);
-      }
-    }
+  //       if (gd) setGraphData(gd);
+  //       else setGraphData(fallbackGraphData);
+  //     } catch {
+  //       if (!alive) return;
+  //       setGraphData(fallbackGraphData);
+  //     } finally {
+  //       if (!alive) return;
+  //       setLoadingGraph(false);
+  //     }
+  //   }
 
-    loadGraphIfNeeded();
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkingLogin]);
+  //   loadGraphIfNeeded();
+  //   return () => {
+  //     alive = false;
+  //   };
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [checkingLogin]);
 
   const finalGraphData = graphData ?? fallbackGraphData;
   console.log(finalGraphData)
