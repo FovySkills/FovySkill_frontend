@@ -10,37 +10,39 @@ import Growth from "./Component/Growth";
 import { useSkillmapStore } from "@/app/lib/skillmapStore";
 
 //-----------------------------mock data-------------------------------------------
-const defaultData = {
-  nodes: [
-    { id: "me", name: "Me", level: 0, score: 5 },
-    { id: "1", name: "軟體工程基礎", level: 1, score: 5 },
-    { id: "1.1", name: "程式語言基礎", level: 2, score: 4 },
-    { id: "1.1.1", name: "Python", level: 3, score: 5 },
-    { id: "1.1.2", name: "JavaScript", level: 3, score: 5 },
-    { id: "1.1.3", name: "Tailwind", level: 3, score: 3 },
-    { id: "2", name: "後端開發", level: 1, score: 4 },
-    { id: "2.3", name: "網路與通訊", level: 2, score: 4 },
-    { id: "2.3.1", name: "WebSocket", level: 3, score: 4 },
-    { id: "3", name: "前端開發", level: 1, score: 4 },
-    { id: "3.1", name: "Drag and Drop API", level: 2, score: 4 },
-    { id: "3.2", name: "SASS/LESS", level: 2, score: 4 },
-    { id: "3.3", name: "Angular (2+)", level: 2, score: 4 },
-  ],
-  links: [
-    { source: "me", target: "1" },
-    { source: "me", target: "2" },
-    { source: "me", target: "3" },
-    { source: "1", target: "1.1" },
-    { source: "1.1", target: "1.1.1" },
-    { source: "1.1", target: "1.1.2" },
-    { source: "1.1", target: "1.1.3" },
-    { source: "2", target: "2.3" },
-    { source: "2.3", target: "2.3.1" },
-    { source: "3", target: "3.1" },
-    { source: "3", target: "3.2" },
-    { source: "3", target: "3.3" },
-  ],
-};
+// const defaultData = {
+//   nodes: [
+//     { id: "me", name: "Me", level: 0, score: 5 },
+//     { id: "1", name: "軟體工程基礎", level: 1, score: 5 },
+//     { id: "1.1", name: "程式語言基礎", level: 2, score: 4 },
+//     { id: "1.1.1", name: "Python", level: 3, score: 5 },
+//     { id: "1.1.2", name: "JavaScript", level: 3, score: 5 },
+//     { id: "1.1.3", name: "Tailwind", level: 3, score: 3 },
+//     { id: "2", name: "後端開發", level: 1, score: 4 },
+//     { id: "2.3", name: "網路與通訊", level: 2, score: 4 },
+//     { id: "2.3.1", name: "WebSocket", level: 3, score: 4 },
+//     { id: "3", name: "前端開發", level: 1, score: 4 },
+//     { id: "3.1", name: "Drag and Drop API", level: 2, score: 4 },
+//     { id: "3.2", name: "SASS/LESS", level: 2, score: 4 },
+//     { id: "3.3", name: "Angular (2+)", level: 2, score: 4 },
+//   ],
+//   links: [
+//     { source: "me", target: "1" },
+//     { source: "me", target: "2" },
+//     { source: "me", target: "3" },
+//     { source: "1", target: "1.1" },
+//     { source: "1.1", target: "1.1.1" },
+//     { source: "1.1", target: "1.1.2" },
+//     { source: "1.1", target: "1.1.3" },
+//     { source: "2", target: "2.3" },
+//     { source: "2.3", target: "2.3.1" },
+//     { source: "3", target: "3.1" },
+//     { source: "3", target: "3.2" },
+//     { source: "3", target: "3.3" },
+//   ],
+// };
+
+// const defaultData={nodes:[],edges:[]}
 
 export default function SkillMapPage() {
   const router = useRouter();
@@ -53,10 +55,11 @@ export default function SkillMapPage() {
   // graphData cache（持久化在 sessionStorage）
   const { graphData, updatedAt, setGraphData, clearGraph } = useSkillmapStore();
 
-  const [checkingLogin, setCheckingLogin] = useState(true);
+  const [checkingLogin, setCheckingLogin] = useState(false);
   const [loadingGraph, setLoadingGraph] = useState(false);
 
-  const fallbackGraphData = useMemo(() => JSON.stringify(defaultData), []);
+//   const fallbackGraphData = useMemo(() => JSON.stringify([defaultData]), []);
+  const fallbackGraphData :any= []
 
   function RouterHandler() {
     router.push("/Dashboard");
@@ -100,7 +103,7 @@ export default function SkillMapPage() {
       }
     }
 
-    checkLogin();
+    // checkLogin();
     return () => {
       alive = false;
     };
@@ -158,7 +161,8 @@ export default function SkillMapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkingLogin]);
 
-  const finalGraphData = graphData ?? fallbackGraphData;
+//   const finalGraphData = graphData ?? fallbackGraphData;
+  const finalGraphData:any = ""
 
   if (checkingLogin) {
     return (

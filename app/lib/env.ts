@@ -17,4 +17,4 @@ function assertEnv() {
     if (!process.env[k]) throw new Error(`Missing env: ${k}`);
   }
 }
-assertEnv();
+// assertEnv();
