@@ -1,63 +1,28 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import OptionBar from "./Component/OptionBar";
 import ServicesBar from "./Component/ServicesBar";
 import Sidebar from "./Component/Sidebar";
 import SkillMap from "./Component/SkillMap";
 import Growth from "./Component/Growth";
+import UploadArea from "./Component/UploadArea"; // 记得换成你正确的路径
 import { useSkillmapStore } from "@/app/lib/skillmapStore";
-
-//-----------------------------mock data-------------------------------------------
-const defaultData = {
-  nodes: [
-    { id: "me", name: "Me", level: 0, score: 5 },
-    { id: "1", name: "軟體工程基礎", level: 1, score: 5 },
-    { id: "1.1", name: "程式語言基礎", level: 2, score: 4 },
-    { id: "1.1.1", name: "Python", level: 3, score: 5 },
-    { id: "1.1.2", name: "JavaScript", level: 3, score: 5 },
-    { id: "1.1.3", name: "Tailwind", level: 3, score: 3 },
-    { id: "2", name: "後端開發", level: 1, score: 4 },
-    { id: "2.3", name: "網路與通訊", level: 2, score: 4 },
-    { id: "2.3.1", name: "WebSocket", level: 3, score: 4 },
-    { id: "3", name: "前端開發", level: 1, score: 4 },
-    { id: "3.1", name: "Drag and Drop API", level: 2, score: 4 },
-    { id: "3.2", name: "SASS/LESS", level: 2, score: 4 },
-    { id: "3.3", name: "Angular (2+)", level: 2, score: 4 },
-  ],
-  links: [
-    { source: "me", target: "1" },
-    { source: "me", target: "2" },
-    { source: "me", target: "3" },
-    { source: "1", target: "1.1" },
-    { source: "1.1", target: "1.1.1" },
-    { source: "1.1", target: "1.1.2" },
-    { source: "1.1", target: "1.1.3" },
-    { source: "2", target: "2.3" },
-    { source: "2.3", target: "2.3.1" },
-    { source: "3", target: "3.1" },
-    { source: "3", target: "3.2" },
-    { source: "3", target: "3.3" },
-  ],
-};
-
 
 export default function SkillMapPage() {
   const router = useRouter();
 
-  // UI state（不持久化）
   const [showSkillMap, setShowSkillMap] = useState(true);
   const [showGrowth, setShowGrowth] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
 
-  // graphData cache（持久化在 sessionStorage）
   const { graphData, updatedAt, setGraphData, clearGraph } = useSkillmapStore();
 
   const [checkingLogin, setCheckingLogin] = useState(false);
   const [loadingGraph, setLoadingGraph] = useState(false);
-
-  const fallbackGraphData = useMemo(() => JSON.stringify(defaultData), []);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   function RouterHandler() {
     router.push("/Dashboard");
@@ -72,6 +37,10 @@ export default function SkillMapPage() {
     setShowSkillMap(false);
     setShowGrowth(true);
   }
+
+  const handleUploadSuccess = () => {
+    setReloadTrigger(prev => prev + 1);
+  };
 
   useEffect(() => {
     let alive = true;
@@ -101,66 +70,68 @@ export default function SkillMapPage() {
       }
     }
 
-    // checkLogin();
+    checkLogin();
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // useEffect(() => {
-  //   if (checkingLogin) return;
+  useEffect(() => {
+    if (checkingLogin) return;
 
-  //   let alive = true;
+    let alive = true;
 
-  //   async function loadGraphIfNeeded() {
-  //     const TTL_MS = 5 * 60 * 1000; // 5 min
-  //     const isFresh = updatedAt && Date.now() - updatedAt < TTL_MS;
+    async function loadGraphIfNeeded() {
+      const TTL_MS = 5 * 60 * 1000;
+      // 当 reloadTrigger 被触发时，强制无视 isFresh 去重抓
+      const isFresh = reloadTrigger === 0 && updatedAt && Date.now() - updatedAt < TTL_MS;
 
-  //     if (graphData && isFresh) return;
+      if (graphData && isFresh) return;
 
-  //     setLoadingGraph(true);
-  //     try {
-  //       const res = await fetch("/api/tree/latest", {
-  //         method: "GET",
-  //         credentials: "include",
-  //         cache: "no-store",
-  //       });
+      setLoadingGraph(true);
+      try {
+        const res = await fetch("/api/tree/latest", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
 
-  //       if (!res.ok) {
-  //         if (res.status === 401) {
-  //           clearGraph();
-  //           router.replace("/");
-  //           return;
-  //         }
-  //         throw new Error(`Request failed: ${res.status}`);
-  //       }
+        if (!res.ok) {
+          if (res.status === 401) {
+            clearGraph();
+            router.replace("/");
+            return;
+          }
+          throw new Error(`Request failed: ${res.status}`);
+        }
 
-  //       const json = await res.json();
-  //       const gd = json?.data ? JSON.stringify(json.data) : null;
+        const json = await res.json();
+        const tree = json?.data?.data ?? null; 
 
-  //       if (!alive) return;
+        const gd =
+          tree === null
+            ? "" 
+            : typeof tree === "string"
+              ? tree 
+              : JSON.stringify(tree); 
 
-  //       if (gd) setGraphData(gd);
-  //       else setGraphData(fallbackGraphData);
-  //     } catch {
-  //       if (!alive) return;
-  //       setGraphData(fallbackGraphData);
-  //     } finally {
-  //       if (!alive) return;
-  //       setLoadingGraph(false);
-  //     }
-  //   }
+        if (!alive) return;
 
-  //   loadGraphIfNeeded();
-  //   return () => {
-  //     alive = false;
-  //   };
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [checkingLogin]);
+        setGraphData(gd);
+      } catch {
+        if (!alive) return;
+        setGraphData("");
+      } finally {
+        if (!alive) return;
+        setLoadingGraph(false);
+      }
+    }
 
-  const finalGraphData = graphData ?? fallbackGraphData;
-  console.log(finalGraphData)
+    loadGraphIfNeeded();
+    return () => {
+      alive = false;
+    };
+  }, [checkingLogin, reloadTrigger]);
 
   if (checkingLogin) {
     return (
@@ -172,6 +143,12 @@ export default function SkillMapPage() {
 
   return (
     <>
+      <UploadArea 
+        show={showUpload} 
+        setShow={setShowUpload} 
+        onUploadSuccess={handleUploadSuccess} 
+      />
+
       {!showSidebar && (
         <SidebarButton showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
       )}
@@ -190,15 +167,16 @@ export default function SkillMapPage() {
 
         <div>
           {loadingGraph && (
-            <div className="text-white/80 p-4">Loading skillmap...</div>
+            <div className="flex items-center justify-center h-screen w-full text-white">Loading skillmap...</div>
           )}
 
-          {showSkillMap && <SkillMap graphData={finalGraphData} />}
-          {showGrowth && <Growth graphData={finalGraphData} />}
+          {!loadingGraph && showSkillMap && <SkillMap graphData={graphData} />}
+          {!loadingGraph && showGrowth && <Growth graphData={graphData} />}
         </div>
 
-        <div className="h-full w-full">
+        <div className="h-full w-full relative">
           <ServicesBar RouterHandler={RouterHandler} />
+          
         </div>
       </div>
     </>

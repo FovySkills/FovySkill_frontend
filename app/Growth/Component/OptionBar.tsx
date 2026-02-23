@@ -29,9 +29,9 @@ export default function OptionBar({showSkillMap,showGrowth,onSkillMap,onGrowth}:
 
       </div>
 
-      <div className="my-5 mx-30">
+      {showGrowth&&<div className="my-5 mx-30">
         <DropdownButton />
-      </div>
+      </div>}
     </header>
   );
 }

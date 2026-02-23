@@ -1,5 +1,11 @@
+import { useState } from "react"
+import UploadArea from "./UploadArea"
+
 export default function ServicesBar({ RouterHandler }: { RouterHandler: () => void }) {
-    return (
+    const [showUploadArea,setShowUploadArea]=useState<boolean>(false)
+
+    return (<>
+        <UploadArea show={showUploadArea} setShow={setShowUploadArea}></UploadArea>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mx-15 my-5">
             <button type="button" onClick={() => RouterHandler()} className="p-3 inline-flex items-center justify-center w-12 h-12 rounded-full border-2 border-white shadow-[0_0_24px_rgba(0,0,0,0.8)] hover:scale-120 active:scale-90 duration-300 ease-in-out" title="Return Dashboard">
                 <svg className="size-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -14,7 +20,7 @@ export default function ServicesBar({ RouterHandler }: { RouterHandler: () => vo
                     </svg>
                 </button>
                 <div className="rounded-full px-4 py-2 shadow-[0_0_24px_rgba(0,0,0,0.8)] flex items-center gap-4">
-                    <button type="button" onClick={() => { }} className="px-3 text-white hover:scale-120 active:scale-90 duration-300 ease-in-out">
+                    <button type="button" onClick={() => {setShowUploadArea(prev=>!prev) }} className="px-3 text-white hover:scale-120 active:scale-90 duration-300 ease-in-out">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
@@ -35,5 +41,6 @@ export default function ServicesBar({ RouterHandler }: { RouterHandler: () => vo
             <div className="justify-self-end" >
             </div>
         </div>
+    </>
     )
 }

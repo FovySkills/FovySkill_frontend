@@ -1,6 +1,6 @@
 import TwoDGraph from "./2DGraph";
 
-export default function Growth({ graphData }: { graphData: string }) {
+export default function Growth({ graphData }: { graphData: string | null}) {
 
 
     if (!graphData) {

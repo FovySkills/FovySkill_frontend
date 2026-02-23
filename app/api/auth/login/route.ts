@@ -4,20 +4,30 @@ import { jsonFail, jsonOk } from "@/app/lib/apiResponse";
 import { setAccessCookie, setRefreshCookie } from "@/app/lib/cookies";
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => null);
-  if (!body?.username || !body?.password) return jsonFail("Missing username/password", 400);
+  try {
+    const body = await req.json().catch(() => null);
+    if (!body?.username || !body?.password) return jsonFail("Missing username/password", 400);
 
-  const { res, data } = await gatewayFetch("/api/auth/login/", {
-    baseUrl: SERVICES.auth.baseUrl,
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+    const { res, data } = await gatewayFetch("/api/auth/login/", {
+      baseUrl: SERVICES.auth.baseUrl,
+      method: "POST",
+      body: JSON.stringify(body),
+      timeoutMs: 3000, // ✅ 測試先縮短，不要每次卡 8 秒
+    });
 
-  if (!res.ok) return jsonFail("Login failed", res.status, data);
-  if (!data?.access || !data?.refresh) return jsonFail("Invalid token response", 502, data);
+    if (!res.ok) return jsonFail("Login failed", res.status, data);
 
-  await setAccessCookie(data.access);
-  await setRefreshCookie(data.refresh);
+    if (!data?.access) return jsonFail("Invalid token response", 502, data);
 
-  return jsonOk({ loggedIn: true });
+    await setAccessCookie(data.access);
+    await setRefreshCookie(data.refresh);
+
+    return jsonOk({ loggedIn: true ,user: data.user ?? null,});
+  } catch (e: any) {
+    return jsonFail(e?.message || "Unhandled login error", 500, {
+      name: e?.name,
+      
+      cause: e?.cause?.message || String(e?.cause || ""),
+    });
+  }
 }

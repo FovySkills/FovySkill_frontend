@@ -1,6 +1,6 @@
 import ThreeDGraph from "./3DGraph";
 
-export default function SkillMap({ graphData }: { graphData: string }) {
+export default function SkillMap({ graphData }: { graphData: string |null}) {
     if (!graphData) {
         return (
             <div className="flex justify-center items-center h-full w-full">
