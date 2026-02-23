@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import OptionBar from "./Component/OptionBar";
 import ServicesBar from "./Component/ServicesBar";
 import Sidebar from "./Component/Sidebar";
 import SkillMap from "./Component/SkillMap";
 import Growth from "./Component/Growth";
-import UploadArea from "./Component/UploadArea"; // 记得换成你正确的路径
+import UploadArea from "./Component/UploadArea";
+
 import { useSkillmapStore } from "@/app/lib/skillmapStore";
 
 export default function SkillMapPage() {
@@ -20,9 +22,8 @@ export default function SkillMapPage() {
 
   const { graphData, updatedAt, setGraphData, clearGraph } = useSkillmapStore();
 
-  const [checkingLogin, setCheckingLogin] = useState(false);
+  const [checkingLogin, setCheckingLogin] = useState(true);
   const [loadingGraph, setLoadingGraph] = useState(false);
-  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   function RouterHandler() {
     router.push("/Dashboard");
@@ -39,9 +40,10 @@ export default function SkillMapPage() {
   }
 
   const handleUploadSuccess = () => {
-    setReloadTrigger(prev => prev + 1);
+
   };
 
+  // 1) check session
   useEffect(() => {
     let alive = true;
 
@@ -74,7 +76,7 @@ export default function SkillMapPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [clearGraph, router]);
 
   useEffect(() => {
     if (checkingLogin) return;
@@ -83,10 +85,9 @@ export default function SkillMapPage() {
 
     async function loadGraphIfNeeded() {
       const TTL_MS = 5 * 60 * 1000;
-      // 当 reloadTrigger 被触发时，强制无视 isFresh 去重抓
-      const isFresh = reloadTrigger === 0 && updatedAt && Date.now() - updatedAt < TTL_MS;
+      const isFresh = updatedAt !== null && Date.now() - updatedAt < TTL_MS;
 
-      if (graphData && isFresh) return;
+      if (graphData !== null && isFresh) return;
 
       setLoadingGraph(true);
       try {
@@ -106,21 +107,15 @@ export default function SkillMapPage() {
         }
 
         const json = await res.json();
-        const tree = json?.data?.data ?? null; 
+        const tree = json?.data?.data ?? null;
 
-        const gd =
-          tree === null
-            ? "" 
-            : typeof tree === "string"
-              ? tree 
-              : JSON.stringify(tree); 
+        const nextGraphData =
+          tree === null ? null : typeof tree === "string" ? tree : JSON.stringify(tree);
 
         if (!alive) return;
-
-        setGraphData(gd);
-      } catch {
-        if (!alive) return;
-        setGraphData("");
+        setGraphData(nextGraphData);
+      } catch (e) {
+        console.error(e);
       } finally {
         if (!alive) return;
         setLoadingGraph(false);
@@ -128,10 +123,11 @@ export default function SkillMapPage() {
     }
 
     loadGraphIfNeeded();
+
     return () => {
       alive = false;
     };
-  }, [checkingLogin, reloadTrigger]);
+  }, [checkingLogin, updatedAt, setGraphData, clearGraph, router]);
 
   if (checkingLogin) {
     return (
@@ -143,10 +139,11 @@ export default function SkillMapPage() {
 
   return (
     <>
-      <UploadArea 
-        show={showUpload} 
-        setShow={setShowUpload} 
-        onUploadSuccess={handleUploadSuccess} 
+      <UploadArea
+        show={showUpload}
+        setShow={setShowUpload}
+        onUploadSuccess={handleUploadSuccess}
+        setGraphData={setGraphData}
       />
 
       {!showSidebar && (
@@ -167,7 +164,9 @@ export default function SkillMapPage() {
 
         <div>
           {loadingGraph && (
-            <div className="flex items-center justify-center h-screen w-full text-white">Loading skillmap...</div>
+            <div className="flex items-center justify-center h-screen w-full text-white">
+              Loading skillmap...
+            </div>
           )}
 
           {!loadingGraph && showSkillMap && <SkillMap graphData={graphData} />}
@@ -175,8 +174,7 @@ export default function SkillMapPage() {
         </div>
 
         <div className="h-full w-full relative">
-          <ServicesBar RouterHandler={RouterHandler} />
-          
+          <ServicesBar RouterHandler={RouterHandler} setGraphData={setGraphData} />
         </div>
       </div>
     </>

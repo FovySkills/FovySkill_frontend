@@ -124,7 +124,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 text-xs text-zinc-400">
-            Don't have a FOVY account? <Link href="/Register" className="underline text-zinc-200">Sign up</Link>
+            Don't have a FOVY account? <Link href="/Signup" className="underline text-zinc-200">Sign up</Link>
           </div>
 
           {message && (

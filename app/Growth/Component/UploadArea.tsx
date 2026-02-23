@@ -1,4 +1,5 @@
-'use client'
+"use client";
+
 import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -6,9 +7,15 @@ interface UploadAreaProps {
   show: boolean;
   setShow: React.Dispatch<React.SetStateAction<boolean>>;
   onUploadSuccess?: () => void;
+  setGraphData: (graphData: string | null) => void; // ✅ 改成 string setter
 }
 
-export default function UploadArea({ show, setShow, onUploadSuccess }: UploadAreaProps) {
+export default function UploadArea({
+  show,
+  setShow,
+  onUploadSuccess,
+  setGraphData,
+}: UploadAreaProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -16,43 +23,50 @@ export default function UploadArea({ show, setShow, onUploadSuccess }: UploadAre
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+
     const file = files[0];
     setFileName(file.name);
 
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      alert('Please select a PDF file');
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      alert("Please select a PDF file");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size too large. Maximum 10MB allowed');
+      alert("File size too large. Maximum 10MB allowed");
       return;
     }
 
     try {
       setIsUploading(true);
-      
+
       const formData = new FormData();
       formData.append("pdf_file", file);
 
       const res = await fetch("/api/document/upload/", {
         method: "POST",
         body: formData,
+        credentials: "include",
+        cache: "no-store",
       });
 
-      if (!res.ok) {
-        throw new Error("Upload failed");
-      }
+      if (!res.ok) throw new Error("Upload failed");
 
-      if (onUploadSuccess) {
-        onUploadSuccess();
-      }
+      const data = await res.json();
+
+      const graphObj = data?.data?.data ?? null;
+
+      const nextGraphData =
+        graphObj === null ? null : typeof graphObj === "string" ? graphObj : JSON.stringify(graphObj);
+
+      setGraphData(nextGraphData);
+      onUploadSuccess?.();
       setShow(false);
     } catch (e) {
       console.error(e);
-      alert('Upload failed. Please try again.');
+      alert("Upload failed. Please try again.");
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -99,8 +113,19 @@ export default function UploadArea({ show, setShow, onUploadSuccess }: UploadAre
               {isUploading ? (
                 <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-12 h-12"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z"
+                  />
                 </svg>
               )}
             </div>
@@ -113,7 +138,9 @@ export default function UploadArea({ show, setShow, onUploadSuccess }: UploadAre
             </div>
 
             {fileName && (
-              <div className="mt-2 text-gray-700 text-sm truncate w-full text-center">{fileName}</div>
+              <div className="mt-2 text-gray-700 text-sm truncate w-full text-center">
+                {fileName}
+              </div>
             )}
           </motion.div>
         </>

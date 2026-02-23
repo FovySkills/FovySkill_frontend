@@ -27,8 +27,9 @@ export async function POST(req: Request) {
   })
 
   if (!docRes.ok) {
-    const errorData = await docRes.json().catch(() => null)
-    return jsonFail("File storage failed", docRes.status, errorData)
+    // console.log("docRes.status", docRes.status)
+    const raw = await docRes.text().catch(() => "")
+return jsonFail("File storage failed", docRes.status, { raw })
   }
 
   // STEP 2: 轉發給 Tree Service 生成（欄位要叫 file）
