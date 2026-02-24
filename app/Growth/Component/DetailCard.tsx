@@ -15,10 +15,26 @@ function levelFromScore(score: number) {
 }
 
 // 用 6 格評等（你圖看起來類似 6 格）
-function toDots(score: number, totalDots = 6) {
-  const filled = Math.floor((score / 100) * totalDots);
-  const hasHalf = (score / 100) * totalDots - filled >= 0.5;
-  return { filled, half: hasHalf ? 1 : 0, empty: totalDots - filled - (hasHalf ? 1 : 0) };
+function toDots(score: number, totalDots = 5) {
+  let normalized: number;
+
+  // 小於等於 5 → 當 5 分制
+  if (score <= 5) {
+    normalized = score;
+  }
+  // 大於 5 → 當 100 分制
+  else {
+    normalized = (score / 100) * totalDots;
+  }
+
+  const filled = Math.floor(normalized);
+  const hasHalf = normalized - filled >= 0.5;
+
+  return {
+    filled,
+    half: hasHalf ? 1 : 0,
+    empty: totalDots - filled - (hasHalf ? 1 : 0),
+  };
 }
 
 function Dot({ kind }: { kind: "filled" | "half" | "empty" }) {
@@ -85,7 +101,7 @@ export default function DetailCard({
             "
           >
             <div className="text-white text-5xl font-semibold leading-none">
-              {score}
+              {score*10}
               <span className="text-base font-normal ml-1">%</span>
             </div>
             <div className="text-white/85 mt-2 text-sm">{level}</div>
@@ -93,10 +109,9 @@ export default function DetailCard({
         </div>
       </div>
 
-      {/* 指標列 */}
       <div className="mt-8 space-y-4">
         {metrics.map((m) => {
-          const dots = toDots(m.value, 6);
+          const dots = toDots(m.value, 5);
           return (
             <div
               key={m.label}
