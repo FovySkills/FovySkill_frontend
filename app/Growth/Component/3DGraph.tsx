@@ -177,7 +177,7 @@ function SkillTree3D({ data }: { data: GraphT }) {
   );
 }
 
-export default function SkillTree({ graphData }: { graphData: GraphData | null }) {
+export default function SkillTree({ graphData }: { graphData: string }) {
   const data = useMemo<GraphT | null>(() => {
     try {
       if (!graphData) return null;
