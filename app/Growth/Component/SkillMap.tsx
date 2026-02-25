@@ -6,7 +6,7 @@ export default function SkillMap({ graphData }: { graphData: string |null}) {
             <div className="flex justify-center items-center h-full w-full">
                 <div className="relative w-[70%] rounded-[180px] px-12 py-16 text-center shadow-[0_0_40px_rgba(255,255,255,0.35)]">
                     <h1 className="text-white text-3xl font-medium mb-6">
-                        嗨 Jack!
+                        嗨
                     </h1>
                     <p className="text-white/90 text-lg leading-relaxed">
                         歡迎來到你的技能地圖，點按「＋」上傳你的專案，
