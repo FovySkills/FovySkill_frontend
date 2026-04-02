@@ -8,10 +8,13 @@ export default function LoginPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [message, setMessage] = useState("")
+  const [loading, setLoading] = useState(false)
   const route=useRouter()
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
     setMessage("")
+    setLoading(true)
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -40,6 +43,8 @@ export default function LoginPage() {
       route.push("/Dashboard")
     } catch (err: any) {
       setMessage(err?.message || "Network error")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -116,9 +121,10 @@ export default function LoginPage() {
             <div className="pt-4">
               <button
                 type="submit"
-                className="w-[200px] rounded-full bg-zinc-300 text-black font-medium py-3 shadow-[0_0_20px_rgba(255,255,255,0.4)] hover:shadow-[0_0_25px_rgba(255,255,255,0.6)] hover:bg-white transition-all"
+                disabled={loading}
+                className="w-[200px] rounded-full bg-zinc-300 text-black font-medium py-3 shadow-[0_0_20px_rgba(255,255,255,0.4)] hover:shadow-[0_0_25px_rgba(255,255,255,0.6)] hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Log in
+                {loading ? "Logging in..." : "Log in"}
               </button>
             </div>
           </form>

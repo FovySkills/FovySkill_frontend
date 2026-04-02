@@ -16,6 +16,6 @@ export async function POST() {
     }).catch(() => null);
   }
 
-  clearAuthCookies();
+  await clearAuthCookies();
   return jsonOk({ loggedOut: true });
 }

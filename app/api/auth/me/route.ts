@@ -1,14 +1,11 @@
-import { NextRequest, NextResponse } from "next/server"
-import { SERVICES } from "@/app/lib/services";
-import { gatewayFetch } from "@/app/lib/gatewayFetch";
+import { NextResponse } from "next/server"
+import { SERVICES } from "@/app/lib/services"
+import { gatewayFetch } from "@/app/lib/gatewayFetch"
+import { getValidAccessToken } from "@/app/lib/auth"
 
-
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const authHeader = req.headers.get("authorization")
-    const access = authHeader?.startsWith("Bearer ") 
-      ? authHeader.split(" ")[1] 
-      : req.cookies.get("access_token")?.value
+    const access = await getValidAccessToken()
 
     if (!access) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })

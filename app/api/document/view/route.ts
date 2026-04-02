@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest) {
   const access = await getValidAccessToken()
   if (!access) return jsonFail("Unauthorized", 401)
 
-  const upstream = await fetch(`${SERVICES.document.baseUrl}/api/document/documents/preview/`, {
+  const upstream = await fetch(`${SERVICES.document.baseUrl}/api/document/view/`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${access}`,

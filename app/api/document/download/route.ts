@@ -8,7 +8,7 @@ export async function GET() {
   if (!access) return jsonFail("Unauthorized", 401)
 
   const res = await fetch(
-    `${SERVICES.document.baseUrl}/api/document/documents/download/`,
+    `${SERVICES.document.baseUrl}/api/document/download/`,
     {
       headers: { Authorization: `Bearer ${access}` },
     }

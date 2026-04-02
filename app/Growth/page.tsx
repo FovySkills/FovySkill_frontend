@@ -40,7 +40,8 @@ export default function SkillMapPage() {
   }
 
   const handleUploadSuccess = () => {
-
+    // 直接切換到成長地圖分頁，因為 UploadArea 已經將最新的圖表資料寫入全域狀態了
+    showGrowthController();
   };
 
   // 1) check session
@@ -87,7 +88,8 @@ export default function SkillMapPage() {
       const TTL_MS = 5 * 60 * 1000;
       const isFresh = updatedAt !== null && Date.now() - updatedAt < TTL_MS;
 
-      if (graphData !== null && isFresh) return;
+      // isFresh 對 null 也生效：剛 fetch 完但沒有樹（404/503）也不應馬上重試
+      if (isFresh) return;
 
       setLoadingGraph(true);
       try {
@@ -103,6 +105,12 @@ export default function SkillMapPage() {
             router.replace("/");
             return;
           }
+          // 404 = 新帳號尚無技能樹，正常狀態 → 顯示 placeholder
+          if (res.status === 404) {
+            if (!alive) return;
+            setGraphData(null);
+            return;
+          }
           throw new Error(`Request failed: ${res.status}`);
         }
 
@@ -116,6 +124,8 @@ export default function SkillMapPage() {
         setGraphData(nextGraphData);
       } catch (e) {
         console.error(e);
+        // 不呼叫 setGraphData(null)，避免 updatedAt 更新觸發 useEffect 無限循環
+        // graphData 本來就是 null，placeholder 會正常顯示
       } finally {
         if (!alive) return;
         setLoadingGraph(false);

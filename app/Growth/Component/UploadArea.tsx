@@ -52,13 +52,14 @@ export default function UploadArea({
       if (!res.ok) throw new Error("Upload failed");
 
       const data = await res.json();
-
-      const graphObj = data?.data?.data ?? null;
-
-      const nextGraphData =
-        graphObj === null ? null : typeof graphObj === "string" ? graphObj : JSON.stringify(graphObj);
-
+      
+      // Next.js jsonOk 回傳格式為 { ok: true, data: "..." }
+      // 而 generate API 直接回傳 string，所以樹狀 JSON 字串就在 data.data
+      let graphObj = typeof data?.data === "string" ? data.data : (data?.data?.data ?? null);
+      
+      const nextGraphData = graphObj === null ? null : typeof graphObj === "string" ? graphObj : JSON.stringify(graphObj);
       setGraphData(nextGraphData);
+
       onUploadSuccess?.();
       setShow(false);
     } catch (e) {
@@ -79,7 +80,11 @@ export default function UploadArea({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setShow(false)}
+            onClick={() => {
+              if (isUploading) return; // 上傳中不允許關閉
+              setFileName(null);
+              setShow(false);
+            }}
           />
 
           <motion.div
@@ -98,7 +103,7 @@ export default function UploadArea({
             onDrop={(e) => {
               e.preventDefault();
               setDragging(false);
-              handleFiles(e.dataTransfer.files);
+              if (!isUploading) handleFiles(e.dataTransfer.files); // 上傳中忽略新拖入
             }}
           >
             <input

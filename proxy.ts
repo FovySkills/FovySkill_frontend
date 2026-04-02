@@ -6,7 +6,9 @@ function isPublic(pathname: string) {
     "/",
     "/Login",
     "/CreateUser",
-    "/Signup"
+    "/Signup",
+    "/contact",
+    "/pricing"
   ]
   if (exactMatches.includes(pathname)) return true
 
@@ -24,17 +26,30 @@ function isPublic(pathname: string) {
 export default function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  if (isPublic(pathname)) return NextResponse.next()
-
   const access = req.cookies.get(ENV.ACCESS_COOKIE)?.value
   const refresh = req.cookies.get(ENV.REFRESH_COOKIE)?.value
+  const isLogged = !!(access || refresh);
 
-  if (access || refresh) return NextResponse.next()
+  // 若已登入但試圖訪問登入、註冊頁面，自動導向到 Dashboard
+  if (isLogged) {
+    const authPages = ["/Login", "/Signup", "/CreateUser"];
+    if (authPages.includes(pathname)) {
+      return NextResponse.redirect(new URL("/Dashboard", req.url));
+    }
+  }
 
+  // 若為公開頁面，且不是上面攔截的登入頁面，順利放行 (例如首頁 /)
+  if (isPublic(pathname)) return NextResponse.next()
+
+  // 若非公開頁面且已登入，放行
+  if (isLogged) return NextResponse.next()
+
+  // 若為 API 路徑且未登入，回傳 401
   if (pathname.startsWith("/api/")) {
     return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 })
   }
 
+  // 其餘情況 (未登入且訪問需要權限的畫面)，導向登入頁面
   return NextResponse.redirect(new URL("/Login", req.url))
 }
 

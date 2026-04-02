@@ -8,18 +8,18 @@ interface UserPropertyProps {
 }
 
 export default function UserProperty({ isVisible, setVisible, me }: UserPropertyProps) {
-  const [username, setUsername] = useState<string>("Testie Chen")
-  const [position, setPosition] = useState<string>("客戶服務 經理")
-  const [department, setDepartment] = useState<string>("數位金融處")
-  const [email, setEmail] = useState<string>("testie@bank.com")
+  const [username, setUsername] = useState<string>("")
+  const [position, setPosition] = useState<string>("")
+  const [department, setDepartment] = useState<string>("")
+  const [email, setEmail] = useState<string>("")
   const [isBellActive, setBellActive] = useState<boolean>(false)
 
   useEffect(() => {
     if (me) {
-      setUsername(me.username || username)
-      setPosition(me.position || position)
-      setDepartment(me.department_name || department)
-      setEmail(me.email || email)
+      if (me.username)       setUsername(me.username)
+      if (me.position)       setPosition(me.position)
+      if (me.department_name) setDepartment(me.department_name)
+      if (me.email)          setEmail(me.email)
     }
   }, [me])
 

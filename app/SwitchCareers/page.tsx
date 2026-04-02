@@ -7,7 +7,7 @@ export default function SwitchCareers()
     const route=useRouter()
 
     useEffect(()=>{
-        route.push("Dashboard")
+        route.push("/Dashboard")
     },[])
 
     return(

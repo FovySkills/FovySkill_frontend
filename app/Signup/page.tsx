@@ -79,8 +79,19 @@ export default function LoginPage() {
             setStatus(res.status)
             const ct = res.headers.get("content-type") || ""
             const data = ct.includes("application/json") ? await res.json() : await res.text()
-            alert("註冊成功,請登入")
-            route.push("./Login")
+
+            if (!res.ok) {
+              // 顯示後端的錯誤訊息（如帳號已存在）
+              const errMsg =
+                typeof data === "string"
+                  ? data
+                  : data?.message || data?.detail || `註冊失敗（${res.status}）`
+              setResponseText(errMsg)
+              return
+            }
+
+            alert("註冊成功，請登入")
+            route.push("/Login")
         } catch (err: any) {
             alert(`❌ fetch 失敗：${err?.message || String(err)}`)
         } finally {

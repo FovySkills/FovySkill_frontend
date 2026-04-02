@@ -17,7 +17,9 @@ export const useSkillmapStore = create<SkillmapState>()(
 
       setGraphData: (graphData) =>
         set((state) => {
-          if (state.graphData === graphData) return state; // 不動 -> updatedAt 不會變
+          // 相同非 null 值 → 不動（省略重複 render）
+          // null → null 仍更新 updatedAt，確保 TTL 從收到 null 開始計算
+          if (state.graphData !== null && state.graphData === graphData) return state;
           return { graphData, updatedAt: Date.now() };
         }),
 

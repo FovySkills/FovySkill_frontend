@@ -22,14 +22,26 @@ export async function GET() {
 
   if (!userId) return jsonFail("Missing user_id", 401);
 
-  const upstream = await fetch(
-    `${SERVICES.tree.baseUrl}/api/v1/tree/latest/${userId}`,
-    {
-      method: "GET",
-      headers: { Authorization: `Bearer ${access}` },
-      cache: "no-store",
-    }
-  );
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3000);
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(
+      `${SERVICES.tree.baseUrl}/api/v1/tree/latest/${userId}`,
+      {
+        method: "GET",
+        headers: { Authorization: `Bearer ${access}` },
+        cache: "no-store",
+        signal: controller.signal,
+      }
+    );
+  } catch (e: any) {
+    const isTimeout = e?.name === "AbortError";
+    return jsonFail(isTimeout ? "Tree service timeout" : "Tree service unreachable", 503);
+  } finally {
+    clearTimeout(timer);
+  }
 
   const data = await upstream.json().catch(() => null);
   if (!upstream.ok) return jsonFail("Latest tree failed", upstream.status, data);

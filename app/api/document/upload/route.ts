@@ -2,6 +2,12 @@ import { SERVICES } from "@/app/lib/services"
 import { getValidAccessToken } from "@/app/lib/auth"
 import { jsonFail, jsonOk } from "@/app/lib/apiResponse"
 
+function decodeJwtPayload(token: string) {
+  const parts = token.split(".");
+  if (parts.length !== 3) throw new Error("Invalid JWT");
+  return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+}
+
 export async function POST(req: Request) {
   const access = await getValidAccessToken()
   if (!access) return jsonFail("Unauthorized", 401)
@@ -20,30 +26,48 @@ export async function POST(req: Request) {
   docForm.append("pdf_file", pdf, pdf.name)
   if (name) docForm.append("name", String(name))
 
-  const docRes = await fetch(`${SERVICES.document.baseUrl}/api/document/documents/`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${access}` },
-    body: docForm,
-  })
+  let docRes;
+  try {
+    docRes = await fetch(`${SERVICES.document.baseUrl}/api/document/documents/`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${access}` },
+      body: docForm,
+    })
+  } catch (err: any) {
+    return jsonFail("Document service unreachable: " + err.message, 500)
+  }
 
   if (!docRes.ok) {
     // console.log("docRes.status", docRes.status)
     const raw = await docRes.text().catch(() => "")
-return jsonFail("File storage failed", docRes.status, { raw })
+    return jsonFail("File storage failed", docRes.status, { raw })
   }
 
   // STEP 2: 轉發給 Tree Service 生成（欄位要叫 file）
   const treeForm = new FormData()
   treeForm.append("file", pdf, pdf.name)
 
-  const generateRes = await fetch(
-    `${SERVICES.tree.baseUrl}/api/v1/tree/generate?job_type=computerScience`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${access}` },
-      body: treeForm,
-    }
-  )
+  let userId: string = "";
+  try {
+    const payload = decodeJwtPayload(access);
+    userId = payload.user_id;
+  } catch (e) {
+    return jsonFail("Invalid access token", 401);
+  }
+
+  let generateRes;
+  try {
+    generateRes = await fetch(
+      `${SERVICES.tree.baseUrl}/api/v1/tree/generate?job_type=computerScience&user_id=${userId}`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${access}` },
+        body: treeForm,
+      }
+    )
+  } catch (err: any) {
+    return jsonFail("Tree service unreachable: " + err.message, 500)
+  }
 
   if (!generateRes.ok) {
     const errorData = await generateRes.json().catch(() => null)
