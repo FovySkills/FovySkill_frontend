@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import React from "react";
+import React, { useMemo } from "react";
+import { useSkillmapStore } from "@/app/lib/skillmapStore";
 
 interface SidebarProps {
     showSidebar: boolean;
@@ -132,32 +133,63 @@ export default function Sidebar({
     setShowSidebar,
     avatarUrl,
 }: SidebarProps) {
-    const skills: SkillItem[] = [
-        {
-            title: "正在學習中的技能",
-            subtitle: "整合社會能力系統  設計與建模",
-            count: 5,
-            rightHint: "才達到下一階",
-        },
-        {
-            title: "還差兩項",
-            subtitle: "tag to learn",
-            count: 0,
-            rightHint: "才達到下一階",
-        },
-        {
-            title: "還差兩項",
-            subtitle: "tag to learn",
-            count: 0,
-            rightHint: "才達到下一階",
-        },
-    ];
+    const { selectedNodes, graphData } = useSkillmapStore();
 
-    const ranks: RankItem[] = [
-        { name: "數位安排與交易觀察", tag: "還好", glow: "orange" },
-        { name: "許軟體開發與管理", tag: "優秀", glow: "yellow" },
-        { name: "API、系統整合", tag: "不錯", glow: "blue" },
-    ];
+    // 解析圖表資料，以便萃取統計與排行榜
+    const parsedGraph = useMemo(() => {
+        try {
+            if (!graphData) return null;
+            return JSON.parse(graphData) as { nodes: any[], links: any[] };
+        } catch {
+            return null;
+        }
+    }, [graphData]);
+
+    // 1. 動態計算排行榜 (Top 3 技能)
+    const ranks: RankItem[] = useMemo(() => {
+        if (!parsedGraph || !parsedGraph.nodes) return [];
+        // 排除 Root 節點 ("我" 或 "Me")，再由高到低排序
+        const validNodes = parsedGraph.nodes.filter(n => {
+            const name = String(n.name ?? "");
+            const id = String(n.id ?? "");
+            return !name.includes("我") && id !== "Me" && name !== "Me";
+        });
+        const sorted = validNodes.sort((a, b) => Number(b.score ?? 0) - Number(a.score ?? 0));
+        const top3 = sorted.slice(0, 3);
+        const glowOptions: ("orange" | "yellow" | "blue")[] = ["orange", "yellow", "blue"];
+        
+        return top3.map((node, i) => ({
+            name: String(node.name ?? node.id),
+            tag: `Score: ${Number(node.score ?? 0).toFixed(1)}`, // 使用副標顯示分數
+            glow: glowOptions[i] || "blue"
+        }));
+    }, [parsedGraph]);
+
+    // 2. 動態產生正在學習的技能 (將選中的節點映射到 Skills)
+    const activeSkills: SkillItem[] = useMemo(() => {
+        const result: SkillItem[] = [];
+        
+        for (let i = 0; i < 3; i++) {
+            const node = selectedNodes[i];
+            if (node) {
+                result.push({
+                    title: node.name,
+                    subtitle: `Level ${node.level}`,
+                    count: Math.round(Number(node.score ?? 0) * 20), // 轉換為 0-100 的進度顯示示範
+                    rightHint: "當前熟練度"
+                });
+            } else {
+                result.push({
+                    title: "請點擊技能樹",
+                    subtitle: "探索你的焦點",
+                    count: 0,
+                    rightHint: "尚未選擇"
+                });
+            }
+        }
+        return result;
+    }, [selectedNodes]);
+
 
     return (
         <AnimatePresence>
@@ -221,7 +253,7 @@ export default function Sidebar({
 
                             {/* 技能卡 */}
                             <div className="mt-4 space-y-3">
-                                {skills.map((s, i) => (
+                                {activeSkills.map((s, i) => (
                                     <SkillCard key={i} item={s} />
                                 ))}
                             </div>
@@ -250,7 +282,7 @@ export default function Sidebar({
                                     <div className="mt-3 text-center">
                                         <div className="text-white/60 text-xs">你總共有</div>
                                         <div className="mt-1 text-white/90 text-4xl font-semibold tracking-wide">
-                                            182{" "}
+                                            {parsedGraph?.nodes?.length || 0}{" "}
                                             <span className="text-sm font-normal text-white/60 ml-1">
                                                 個技能
                                             </span>
@@ -262,9 +294,13 @@ export default function Sidebar({
 
                                 {/* Top3 */}
                                 <div className="mt-4 space-y-2">
-                                    <RankRow idx={1} item={ranks[0]} />
-                                    <RankRow idx={2} item={ranks[1]} />
-                                    <RankRow idx={3} item={ranks[2]} />
+                                    {ranks.length > 0 ? (
+                                        ranks.map((rank, i) => (
+                                            <RankRow key={i} idx={i + 1} item={rank} />
+                                        ))
+                                    ) : (
+                                        <div className="text-center text-white/50 text-sm py-4">無技能資料</div>
+                                    )}
                                 </div>
                         </div>
                     </motion.aside>

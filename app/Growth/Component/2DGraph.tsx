@@ -2,8 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import DetailCard from "./DetailCard";
 import { hierarchy, tree } from "d3-hierarchy";
+import { useSkillmapStore } from "@/app/lib/skillmapStore";
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
   ssr: false,
@@ -100,6 +100,29 @@ function drawLiquidNode(
   ctx.lineWidth = 1;
   ctx.stroke();
 
+  ctx.restore();
+}
+
+/** 繪製選中狀態的發光外圈 */
+function drawSelectedGlow(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number
+) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r + 4, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(234, 88, 12, 0.9)"; // Orange-600
+  ctx.lineWidth = 3;
+  ctx.setLineDash([6, 4]); // 虛線效果增加設計感
+  ctx.stroke();
+  
+  // 發光特效
+  ctx.shadowColor = "rgba(234, 88, 12, 0.7)";
+  ctx.shadowBlur = 15;
+  ctx.stroke();
+  
   ctx.restore();
 }
 
@@ -245,7 +268,7 @@ function SkillTree2D({ data }: { data: GraphT }) {
   const fgRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const [selectedNode, setSelectedNode] = useState<NodeT | null>(null);
+  const { selectedNodes, toggleNodeSelection } = useSkillmapStore();
 
   // ✅ 做「真正樹狀」固定座標版 graph
   const laidOutData = useMemo(() => {
@@ -277,19 +300,11 @@ function SkillTree2D({ data }: { data: GraphT }) {
 
   return (
     <div ref={containerRef} className="w-full h-full relative">
-      {selectedNode && (
-        <div className="absolute top-3 right-3 z-10">
-          <DetailCard
-            title={selectedNode.name ?? selectedNode.id}
-            score={Number(selectedNode.score ?? 0)}
-            metrics={[
-              { label: "Level", value: Math.min(100, Number(selectedNode.level ?? 0) * 25) },
-              { label: "Confidence", value: Math.min(100, Number(selectedNode.score ?? 0) * 20) }, // 你原本是 score 當 0~100，這裡示範轉一下
-              { label: "Progress", value: Math.min(100, Number(selectedNode.score ?? 0) * 20) },
-            ]}
-          />
-        </div>
-      )}
+      {/* 
+        將原本的 selectedNode DetailCard 隱藏，
+        因為已經統一由 Sidebar 來顯示選中的節點資訊，
+        若是需要保留單擊彈出 DetailCard，也可恢復此段。
+      */}
 
       {!!size.width && !!size.height && (
         <ForceGraph2D
@@ -315,6 +330,12 @@ function SkillTree2D({ data }: { data: GraphT }) {
             const ratio = clamp01(score / 5);
             const r = nodeRadius(node);
 
+            // 如果該節點被選中，畫出亮色外圍光圈
+            const isSelected = selectedNodes.some(sn => sn.id === String(node.id));
+            if (isSelected) {
+              drawSelectedGlow(ctx, node.x, node.y, r);
+            }
+
             // 液位式節點
             drawLiquidNode(ctx, node.x, node.y, r, ratio);
 
@@ -332,7 +353,7 @@ function SkillTree2D({ data }: { data: GraphT }) {
           linkWidth={1}
 
           onNodeClick={(node: any) => {
-            setSelectedNode({
+            toggleNodeSelection({
               id: String(node.id),
               name: String(node.name ?? node.id),
               level: Number(node.level ?? 0),
