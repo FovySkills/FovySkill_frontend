@@ -6,7 +6,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-12 lg:gap-8 mb-16">
           <div className="md:col-span-2 space-y-4 pr-8">
             <div className="flex items-center gap-2">
-              <img src="/FovyLogo.png" alt="FOVY Logo" className="h-[72px] w-auto" />
+              <img src="/fovyLogo.png" alt="FOVY Logo" className="h-[72px] w-auto" />
             </div>
             <p className="text-sm text-[#0b0a44] max-w-sm mt-4 leading-relaxed font-normal">
               The skill intelligence platform for the liquid workforce. Bridge the gap between human adaptability and business challenges.
