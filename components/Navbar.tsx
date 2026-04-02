@@ -68,7 +68,7 @@ export function Navbar() {
         {/* Left: Logo */}
         <div className="flex items-center gap-2">
           <Link href="/">
-            <img src="/FovyLogo.png" alt="FOVY Logo" className="h-[72px] w-auto" />
+            <img src="/fovyLogo.png" alt="FOVY Logo" className="h-[72px] w-auto" />
           </Link>
         </div>
 
