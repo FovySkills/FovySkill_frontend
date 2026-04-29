@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 
 type RegisterPayload = {
   username: string
+  email: string
   password: string
   user_type: "manager" | "employee"
 }
@@ -13,6 +14,7 @@ export default function EmployeesCreatePage() {
     JSON.stringify(
       {
         username: "test_user",
+        email: "test_user@example.com",
         password: "test_password",
         user_type: "employee",
       } satisfies RegisterPayload,
@@ -39,9 +41,14 @@ export default function EmployeesCreatePage() {
     setResponseText("")
     setStatus(null)
 
-    let bodyObj: any
+    let bodyObj: Partial<RegisterPayload>
     try {
-      bodyObj = JSON.parse(payloadText)
+      const parsed: unknown = JSON.parse(payloadText)
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        setResponseText("❌ JSON 必須是物件")
+        return
+      }
+      bodyObj = parsed as Partial<RegisterPayload>
     } catch {
       setResponseText("❌ JSON 格式錯誤：請修正後再送出")
       return
@@ -50,6 +57,7 @@ export default function EmployeesCreatePage() {
     // （可选）前端简单校验，避免送出后才知道缺字段
     const missing: string[] = []
     if (!bodyObj?.username) missing.push("username")
+    if (!bodyObj?.email) missing.push("email")
     if (!bodyObj?.password) missing.push("password")
     if (!bodyObj?.user_type) missing.push("user_type")
     if (bodyObj?.user_type && !["employee", "manager"].includes(bodyObj.user_type)) {
@@ -79,8 +87,9 @@ export default function EmployeesCreatePage() {
       const data = ct.includes("application/json") ? await res.json() : await res.text()
 
       setResponseText(typeof data === "string" ? data : JSON.stringify(data, null, 2))
-    } catch (err: any) {
-      setResponseText(`❌ fetch 失敗：${err?.message || String(err)}`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      setResponseText(`❌ fetch 失敗：${message}`)
     } finally {
       setLoading(false)
     }
@@ -94,6 +103,7 @@ export default function EmployeesCreatePage() {
       JSON.stringify(
         {
           username: user_type === "manager" ? "test_manager" : "test_employee",
+          email: user_type === "manager" ? "test_manager@example.com" : "test_employee@example.com",
           password: "test_password",
           user_type,
         } satisfies RegisterPayload,
@@ -112,7 +122,7 @@ export default function EmployeesCreatePage() {
             會呼叫 <span className="text-zinc-200">POST /api/auth/register</span>
           </p>
           <p className="mt-1 text-xs text-zinc-500">
-            Body: username / password / user_type（employee 或 manager）
+            Body: username / email / password / user_type（employee 或 manager）
           </p>
         </div>
 

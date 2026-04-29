@@ -1,9 +1,10 @@
 import TwoDGraph from "./2DGraph";
+import { toSkillGraphDataString } from "@/app/lib/skillGraph";
 
 export default function Growth({ graphData }: { graphData: string | null}) {
+    const safeGraphData = toSkillGraphDataString(graphData);
 
-
-    if (!graphData) {
+    if (!safeGraphData) {
         return (
             <div className="flex justify-center items-center h-full w-full">
                 <div className="relative w-[70%] rounded-[180px] px-12 py-16 text-center shadow-[0_0_40px_rgba(255,255,255,0.35)]">
@@ -22,7 +23,7 @@ export default function Growth({ graphData }: { graphData: string | null}) {
     else {
         return (
             <div className="h-full w-full">
-                <TwoDGraph graphData={graphData}></TwoDGraph>
+                <TwoDGraph graphData={safeGraphData}></TwoDGraph>
             </div>
         );
 

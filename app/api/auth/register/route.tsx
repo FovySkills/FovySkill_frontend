@@ -5,8 +5,6 @@ import { jsonFail, jsonOk } from "@/app/lib/apiResponse";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
-  // 1️⃣ 解析 JSON
-  console.log("[register route] hit");
   let body: unknown;
   try {
     body = await req.json();
@@ -23,14 +21,14 @@ export async function POST(req: NextRequest) {
     return jsonFail("Body must be a JSON object", 400);
   }
 
-  const { username, password, user_type } = body as {
+  const { username, email, password, user_type } = body as {
     username?: string;
+    email?: string;
     password?: string;
     user_type?: string;
   };
 
-  // 3️⃣ 必填字段校验
-  if (!username || !password || !user_type) {
+  if (!username || !email || !password || !user_type) {
     return jsonFail("Missing required fields", 400);
   }
 
@@ -44,10 +42,10 @@ export async function POST(req: NextRequest) {
     method: "POST",
     body: JSON.stringify({
       username,
+      email,
       password,
       user_type,
     }),
-    // 如果 gatewayFetch 没自动设置 header，就加：
     headers: { "Content-Type": "application/json" },
   });
 

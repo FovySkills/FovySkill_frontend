@@ -23,12 +23,34 @@ function isPublic(pathname: string) {
   return prefixMatches.some((prefix) => pathname.startsWith(prefix))
 }
 
+function decodeJwtPayload(token: string): { exp?: number } | null {
+  const parts = token.split(".")
+  if (parts.length !== 3) return null
+
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/")
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=")
+    return JSON.parse(atob(padded))
+  } catch {
+    return null
+  }
+}
+
+function isUnexpiredJwt(token: string | undefined) {
+  if (!token) return false
+  const payload = decodeJwtPayload(token)
+  if (typeof payload?.exp !== "number") return false
+
+  const now = Math.floor(Date.now() / 1000)
+  return payload.exp > now + 10
+}
+
 export default function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   const access = req.cookies.get(ENV.ACCESS_COOKIE)?.value
   const refresh = req.cookies.get(ENV.REFRESH_COOKIE)?.value
-  const isLogged = !!(access || refresh);
+  const isLogged = isUnexpiredJwt(access) || isUnexpiredJwt(refresh)
 
   // 若已登入但試圖訪問登入、註冊頁面，自動導向到 Dashboard
   if (isLogged) {

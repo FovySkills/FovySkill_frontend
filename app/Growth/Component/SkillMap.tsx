@@ -1,7 +1,10 @@
 import ThreeDGraph from "./3DGraph";
+import { toSkillGraphDataString } from "@/app/lib/skillGraph";
 
 export default function SkillMap({ graphData }: { graphData: string |null}) {
-    if (!graphData) {
+    const safeGraphData = toSkillGraphDataString(graphData);
+
+    if (!safeGraphData) {
         return (
             <div className="flex justify-center items-center h-full w-full">
                 <div className="relative w-[70%] rounded-[180px] px-12 py-16 text-center shadow-[0_0_40px_rgba(255,255,255,0.35)]">
@@ -20,7 +23,7 @@ export default function SkillMap({ graphData }: { graphData: string |null}) {
     else {
         return (
             <div className="h-full w-full">
-                <ThreeDGraph graphData={graphData}></ThreeDGraph>
+                <ThreeDGraph graphData={safeGraphData}></ThreeDGraph>
             </div>
         );
 

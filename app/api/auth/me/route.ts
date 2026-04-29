@@ -1,32 +1,33 @@
-import { NextResponse } from "next/server"
 import { SERVICES } from "@/app/lib/services"
 import { gatewayFetch } from "@/app/lib/gatewayFetch"
 import { getValidAccessToken } from "@/app/lib/auth"
+import { jsonFail, jsonOk } from "@/app/lib/apiResponse"
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
 
 export async function GET() {
   try {
     const access = await getValidAccessToken()
 
     if (!access) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+      return jsonFail("Unauthorized", 401)
     }
 
-    const data = await gatewayFetch("/api/auth/me/", {
+    const { res, data } = await gatewayFetch("/api/auth/me/", {
       baseUrl: SERVICES.auth.baseUrl,
       method: "GET",
       accessToken: access,
-    }).catch(() => null)
+    })
 
-    if (!data) {
-      return NextResponse.json({ success: false, error: "Failed to fetch profile" }, { status: 400 })
+    if (!res.ok) {
+      return jsonFail("Failed to fetch profile", res.status, data)
     }
 
-    return NextResponse.json({ success: true, data }, { status: 200 })
+    return jsonOk(data)
 
-  } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error?.message || "Internal Server Error" },
-      { status: 500 }
-    )
+  } catch (error: unknown) {
+    return jsonFail(getErrorMessage(error) || "Internal Server Error", 500)
   }
 }

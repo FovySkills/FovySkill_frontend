@@ -9,9 +9,7 @@ export default function LoginPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [repassword, setRepassword] = useState("")
-    const [agreeTerms, setAgreeTerms] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [status, setStatus] = useState<number | null>(null)
     const [responseText, setResponseText] = useState<string>("")
     
     const [isCorrect, setIsCorrect] = useState<boolean>(false)
@@ -40,7 +38,6 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setResponseText("")
-        setStatus(null)
 
         if (!fullName || !email || !password) {
             setResponseText("缺少必填欄位")
@@ -49,11 +46,6 @@ export default function LoginPage() {
 
         if (!isCorrect) {
             setResponseText("請確認密碼格式正確且相符")
-            return
-        }
-
-        if (!agreeTerms) {
-            setResponseText("需同意服務條款")
             return
         }
 
@@ -76,7 +68,6 @@ export default function LoginPage() {
                 credentials: "same-origin",
             })
 
-            setStatus(res.status)
             const ct = res.headers.get("content-type") || ""
             const data = ct.includes("application/json") ? await res.json() : await res.text()
 
@@ -92,8 +83,9 @@ export default function LoginPage() {
 
             alert("註冊成功，請登入")
             route.push("/Login")
-        } catch (err: any) {
-            alert(`❌ fetch 失敗：${err?.message || String(err)}`)
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err)
+            alert(`❌ fetch 失敗：${message}`)
         } finally {
             setLoading(false)
         }
@@ -179,32 +171,8 @@ export default function LoginPage() {
                             </div>
                         )}
 
-                        <div className="space-y-3 pt-2">
-                            <label className="flex items-start gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={agreeTerms}
-                                    onChange={(e) => setAgreeTerms(e.target.checked)}
-                                    className="mt-1 w-4 h-4 rounded-full border-zinc-600 bg-transparent checked:bg-white checked:border-white appearance-none ring-1 ring-zinc-500"
-                                />
-                                <span className="text-xs text-zinc-300 leading-snug">
-                                    I agree to the FOVY <span className="underline cursor-pointer">Terms of Service and Privacy Policy.</span>
-                                </span>
-                            </label>
-
-                            <label className="flex items-start gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="mt-1 w-4 h-4 rounded-full border-zinc-600 bg-transparent checked:bg-white checked:border-white appearance-none ring-1 ring-zinc-500"
-                                />
-                                <span className="text-xs text-zinc-300 leading-snug">
-                                    Send me tips to grow my skills and find projects.
-                                </span>
-                            </label>
-                        </div>
                         {responseText && (
                         <div className="rounded-xl text-xs text-red-500">
-                            {/* <div className="font-semibold mb-2">Response {status !== null ? `(${status})` : ""}</div> */}
                             <pre className="whitespace-pre-wrap break-words">{responseText}</pre>
                         </div>
                     )}

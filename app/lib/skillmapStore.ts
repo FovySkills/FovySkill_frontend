@@ -1,6 +1,7 @@
 // app/lib/stores/skillmapStore.ts
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { toSkillGraphDataString } from "./skillGraph";
 
 export type SkillNode = { id: string; name: string; level: number; score: number };
 
@@ -23,10 +24,17 @@ export const useSkillmapStore = create<SkillmapState>()(
 
       setGraphData: (graphData) =>
         set((state) => {
+          const nextGraphData = toSkillGraphDataString(graphData);
+
           // 相同非 null 值 → 不動（省略重複 render）
           // null → null 仍更新 updatedAt，確保 TTL 從收到 null 開始計算
-          if (state.graphData !== null && state.graphData === graphData) return state;
-          return { graphData, updatedAt: Date.now() };
+          if (state.graphData !== null && state.graphData === nextGraphData) return state;
+
+          return {
+            graphData: nextGraphData,
+            updatedAt: Date.now(),
+            selectedNodes: nextGraphData ? state.selectedNodes : [],
+          };
         }),
 
       clearGraph: () => set({ graphData: null, updatedAt: null, selectedNodes: [] }),
@@ -54,11 +62,13 @@ export const useSkillmapStore = create<SkillmapState>()(
       storage: createJSONStorage(() => sessionStorage),
       merge: (persisted, current) => {
         const p = persisted as Partial<SkillmapState>;
+        const graphData = toSkillGraphDataString(p.graphData);
+
         return {
           ...current,
-          graphData: p.graphData ?? current.graphData,
-          updatedAt: p.updatedAt ?? current.updatedAt,
-          selectedNodes: p.selectedNodes ?? current.selectedNodes,
+          graphData,
+          updatedAt: graphData ? p.updatedAt ?? current.updatedAt : null,
+          selectedNodes: graphData ? p.selectedNodes ?? current.selectedNodes : [],
         };
       },
     }

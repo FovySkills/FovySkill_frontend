@@ -6,12 +6,28 @@ import SelectionCard from "./Component/SelectionCard"
 import UserProperty from "./Component/UserProperty"
 import UserBar from "./Component/UserBar"
 
+type UserProfile = {
+  username?: string
+  position?: string
+  department_name?: string
+  email?: string
+}
+
+type MeResponse = {
+  data?: {
+    user?: UserProfile
+    data?: {
+      user?: UserProfile
+    }
+  }
+}
+
 export default function Dashboard() {
   const router = useRouter()
   const [isVisible, setVisible] = useState<boolean>(false)
   const [me, dispatchMe, isPending] = useActionState(getMyData, null)
 
-  async function getMyData(previousState: any) {
+  async function getMyData(previousState: UserProfile | null) {
     try {
       let empRes = await fetch(`/api/auth/me/`, {
         method: "GET",
@@ -46,9 +62,9 @@ export default function Dashboard() {
         return previousState
       }
 
-      const empJson = await empRes.json()
-      return empJson["data"]["data"]["user"]
-    } catch (err) {
+      const empJson = await empRes.json() as MeResponse
+      return empJson?.data?.user ?? empJson?.data?.data?.user ?? previousState
+    } catch {
       router.replace("/")
       return previousState
     }
@@ -58,7 +74,7 @@ export default function Dashboard() {
     startTransition(() => {
       dispatchMe()
     })
-  }, [])
+  }, [dispatchMe])
 
   function RedirectToPage(pageName: string) {
     router.push(pageName)

@@ -1,6 +1,11 @@
 import { SERVICES } from "@/app/lib/services"
 import { getValidAccessToken } from "@/app/lib/auth"
 import { jsonFail, jsonOk } from "@/app/lib/apiResponse"
+import { readJsonResponse } from "@/app/lib/skillGraph"
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
 
 function decodeJwtPayload(token: string) {
   const parts = token.split(".");
@@ -33,8 +38,8 @@ export async function POST(req: Request) {
       headers: { Authorization: `Bearer ${access}` },
       body: docForm,
     })
-  } catch (err: any) {
-    return jsonFail("Document service unreachable: " + err.message, 500)
+  } catch (err: unknown) {
+    return jsonFail("Document service unreachable: " + getErrorMessage(err), 500)
   }
 
   if (!docRes.ok) {
@@ -51,7 +56,7 @@ export async function POST(req: Request) {
   try {
     const payload = decodeJwtPayload(access);
     userId = payload.user_id;
-  } catch (e) {
+  } catch {
     return jsonFail("Invalid access token", 401);
   }
 
@@ -65,15 +70,15 @@ export async function POST(req: Request) {
         body: treeForm,
       }
     )
-  } catch (err: any) {
-    return jsonFail("Tree service unreachable: " + err.message, 500)
+  } catch (err: unknown) {
+    return jsonFail("Tree service unreachable: " + getErrorMessage(err), 500)
   }
 
   if (!generateRes.ok) {
-    const errorData = await generateRes.json().catch(() => null)
+    const errorData = await readJsonResponse(generateRes)
     return jsonFail("AI generation failed", generateRes.status, errorData)
   }
 
-  const result = await generateRes.json()
+  const result = await readJsonResponse(generateRes)
   return jsonOk(result)
 }

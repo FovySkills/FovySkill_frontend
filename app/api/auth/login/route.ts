@@ -3,6 +3,38 @@ import { gatewayFetch } from "@/app/lib/gatewayFetch";
 import { jsonFail, jsonOk } from "@/app/lib/apiResponse";
 import { setAccessCookie, setRefreshCookie } from "@/app/lib/cookies";
 
+function getErrorInfo(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      name: error.name,
+      cause: error.cause instanceof Error ? error.cause.message : String(error.cause || ""),
+    };
+  }
+
+  return {
+    message: String(error),
+    name: undefined,
+    cause: "",
+  };
+}
+
+function readToken(data: unknown, keys: string[]) {
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
+
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+
+  if (record.data && typeof record.data === "object") {
+    return readToken(record.data, keys);
+  }
+
+  return null;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
@@ -17,17 +49,22 @@ export async function POST(req: Request) {
 
     if (!res.ok) return jsonFail("Login failed", res.status, data);
 
-    if (!data?.access) return jsonFail("Invalid token response", 502, data);
+    const access = readToken(data, ["access", "access_token", "token"]);
+    const refresh = readToken(data, ["refresh", "refresh_token"]);
 
-    await setAccessCookie(data.access);
-    await setRefreshCookie(data.refresh);
+    if (!access) return jsonFail("Invalid token response", 502, data);
+
+    await setAccessCookie(access);
+    if (refresh) {
+      await setRefreshCookie(refresh);
+    }
 
     return jsonOk({ loggedIn: true ,user: data.user ?? null,});
-  } catch (e: any) {
-    return jsonFail(e?.message || "Unhandled login error", 500, {
-      name: e?.name,
-      
-      cause: e?.cause?.message || String(e?.cause || ""),
+  } catch (e: unknown) {
+    const error = getErrorInfo(e);
+    return jsonFail(error.message || "Unhandled login error", 500, {
+      name: error.name,
+      cause: error.cause,
     });
   }
 }

@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { readJsonResponse, toSkillGraphDataString } from "@/app/lib/skillGraph";
 
 interface UploadAreaProps {
   show: boolean;
@@ -49,16 +50,13 @@ export default function UploadArea({
         cache: "no-store",
       });
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        setGraphData(null);
+        throw new Error("Upload failed");
+      }
 
-      const data = await res.json();
-      
-      // Next.js jsonOk 回傳格式為 { ok: true, data: "..." }
-      // 而 generate API 直接回傳 string，所以樹狀 JSON 字串就在 data.data
-      let graphObj = typeof data?.data === "string" ? data.data : (data?.data?.data ?? null);
-      
-      const nextGraphData = graphObj === null ? null : typeof graphObj === "string" ? graphObj : JSON.stringify(graphObj);
-      setGraphData(nextGraphData);
+      const data = await readJsonResponse(res);
+      setGraphData(toSkillGraphDataString(data));
 
       onUploadSuccess?.();
       setShow(false);

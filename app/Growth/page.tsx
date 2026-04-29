@@ -11,6 +11,7 @@ import Growth from "./Component/Growth";
 import UploadArea from "./Component/UploadArea";
 
 import { useSkillmapStore } from "@/app/lib/skillmapStore";
+import { readJsonResponse, toSkillGraphDataString } from "@/app/lib/skillGraph";
 
 export default function SkillMapPage() {
   const router = useRouter();
@@ -114,18 +115,15 @@ export default function SkillMapPage() {
           throw new Error(`Request failed: ${res.status}`);
         }
 
-        const json = await res.json();
-        const tree = json?.data?.data ?? null;
-
-        const nextGraphData =
-          tree === null ? null : typeof tree === "string" ? tree : JSON.stringify(tree);
+        const json = await readJsonResponse(res);
+        const nextGraphData = toSkillGraphDataString(json);
 
         if (!alive) return;
         setGraphData(nextGraphData);
       } catch (e) {
         console.error(e);
-        // 不呼叫 setGraphData(null)，避免 updatedAt 更新觸發 useEffect 無限循環
-        // graphData 本來就是 null，placeholder 會正常顯示
+        if (!alive) return;
+        setGraphData(null);
       } finally {
         if (!alive) return;
         setLoadingGraph(false);

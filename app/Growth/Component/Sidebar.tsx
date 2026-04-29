@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import React, { useMemo } from "react";
 import { useSkillmapStore } from "@/app/lib/skillmapStore";
+import { extractSkillGraphData, type SkillGraphData } from "@/app/lib/skillGraph";
 
 interface SidebarProps {
     showSidebar: boolean;
@@ -131,18 +132,12 @@ function RankRow({ idx, item }: { idx: number; item: RankItem }) {
 export default function Sidebar({
     showSidebar,
     setShowSidebar,
-    avatarUrl,
 }: SidebarProps) {
     const { selectedNodes, graphData } = useSkillmapStore();
 
     // 解析圖表資料，以便萃取統計與排行榜
     const parsedGraph = useMemo(() => {
-        try {
-            if (!graphData) return null;
-            return JSON.parse(graphData) as { nodes: any[], links: any[] };
-        } catch {
-            return null;
-        }
+        return extractSkillGraphData(graphData) as SkillGraphData | null;
     }, [graphData]);
 
     // 1. 動態計算排行榜 (Top 3 技能)
