@@ -18,7 +18,7 @@ export async function PUT(
   const body = await req.json().catch(() => null);
 
   const { res, data } = await gatewayFetch(
-    `/api/auth/employees/${encodeURIComponent(id)}/update/`,
+    `/api/auth/employees/${encodeURIComponent(id)}/`,
     {
       baseUrl: SERVICES.auth.baseUrl,
       method: "PUT",

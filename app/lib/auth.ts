@@ -8,7 +8,22 @@ import {
   setAccessCookie,
   setRefreshCookie,
 } from "./cookies";
-import { ENV } from "./env";
+
+export function readToken(data: unknown, keys: string[]) {
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
+
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+
+  if (record.data && typeof record.data === "object") {
+    return readToken(record.data, keys);
+  }
+
+  return null;
+}
 
 export async function verifyAccessToken(access: string) {
   try {
@@ -22,7 +37,7 @@ export async function verifyAccessToken(access: string) {
       return false; // Expired
     }
     return true; // Still conceptually valid
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -30,7 +45,7 @@ export async function verifyAccessToken(access: string) {
 export async function refreshAccessTokenFromAuthService(refresh: string) {
   if (!refresh) return null;
 
-  const { res, data } = await gatewayFetch("/api/auth/token-refresh/", {
+  const { res, data } = await gatewayFetch("/api/auth/token/refresh/", {
     baseUrl: SERVICES.auth.baseUrl,
     method: "POST",
     body: JSON.stringify({ refresh }),
@@ -39,20 +54,23 @@ export async function refreshAccessTokenFromAuthService(refresh: string) {
 
   if (!res.ok) return null;
 
-  if (data?.access) {
-    await setAccessCookie(data.access);
+  const nextAccess = readToken(data, ["access", "access_token", "token"]);
+  const nextRefresh = readToken(data, ["refresh", "refresh_token"]);
+
+  if (nextAccess) {
+    await setAccessCookie(nextAccess);
     // 若 backend 有回傳新的 refresh token（rotating refresh），也一併更新
-    if (data.refresh) {
-      await setRefreshCookie(data.refresh);
+    if (nextRefresh) {
+      await setRefreshCookie(nextRefresh);
     }
-    return data.access as string;
+    return nextAccess;
   }
 
   return null;
 }
 
 export async function getValidAccessToken() {
-  let access = await getAccessToken();
+  const access = await getAccessToken();
 
   // 如果有 access token，先去 auth server 驗證是否還有效
   if (access) {

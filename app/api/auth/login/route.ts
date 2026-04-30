@@ -2,6 +2,7 @@ import { SERVICES } from "@/app/lib/services";
 import { gatewayFetch } from "@/app/lib/gatewayFetch";
 import { jsonFail, jsonOk } from "@/app/lib/apiResponse";
 import { setAccessCookie, setRefreshCookie } from "@/app/lib/cookies";
+import { readToken } from "@/app/lib/auth";
 
 function getErrorInfo(error: unknown) {
   if (error instanceof Error) {
@@ -19,28 +20,12 @@ function getErrorInfo(error: unknown) {
   };
 }
 
-function readToken(data: unknown, keys: string[]) {
-  if (!data || typeof data !== "object") return null;
-  const record = data as Record<string, unknown>;
-
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === "string" && value.length > 0) return value;
-  }
-
-  if (record.data && typeof record.data === "object") {
-    return readToken(record.data, keys);
-  }
-
-  return null;
-}
-
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
     if (!body?.username || !body?.password) return jsonFail("Missing username/password", 400);
 
-    const { res, data } = await gatewayFetch("/api/auth/login/", {
+    const { res, data } = await gatewayFetch("/api/auth/token/", {
       baseUrl: SERVICES.auth.baseUrl,
       method: "POST",
       body: JSON.stringify(body),
@@ -59,7 +44,14 @@ export async function POST(req: Request) {
       await setRefreshCookie(refresh);
     }
 
-    return jsonOk({ loggedIn: true ,user: data.user ?? null,});
+    const profile = await gatewayFetch("/api/auth/me/", {
+      baseUrl: SERVICES.auth.baseUrl,
+      method: "GET",
+      accessToken: access,
+      timeoutMs: 3000,
+    }).catch(() => null);
+
+    return jsonOk({ loggedIn: true, user: profile?.data ?? null });
   } catch (e: unknown) {
     const error = getErrorInfo(e);
     return jsonFail(error.message || "Unhandled login error", 500, {

@@ -1,5 +1,5 @@
 import { jsonFail, jsonOk } from "@/app/lib/apiResponse";
-import { getAccessToken } from "@/app/lib/cookies";
+import { getValidAccessToken } from "@/app/lib/auth";
 
 function decodeJwtPayload(token: string) {
   const parts = token.split(".");
@@ -8,7 +8,7 @@ function decodeJwtPayload(token: string) {
 }
 
 export async function GET() {
-  const access = await getAccessToken();
+  const access = await getValidAccessToken();
   if (!access) return jsonFail("Unauthorized", 401);
 
   try {
@@ -20,7 +20,8 @@ export async function GET() {
       token_type: payload.token_type,
       raw: payload,
     });
-  } catch (e: any) {
-    return jsonFail("Bad token", 400, { message: e?.message });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return jsonFail("Bad token", 400, { message });
   }
 }

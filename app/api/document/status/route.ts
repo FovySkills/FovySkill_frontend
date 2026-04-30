@@ -8,7 +8,7 @@ export async function GET() {
   const access = await getValidAccessToken()
   if (!access) return jsonFail("Unauthorized", 401)
 
-  const { res, data } = await gatewayFetch("/api/document/status/", {
+  const { res, data } = await gatewayFetch("/api/document/documents/status/", {
     baseUrl: SERVICES.document.baseUrl,
     method: "GET",
     accessToken: access,

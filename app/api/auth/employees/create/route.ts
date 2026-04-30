@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null);
 
-  const { res, data } = await gatewayFetch("/api/auth/employees/create/", {
+  const { res, data } = await gatewayFetch("/api/auth/employees/", {
     baseUrl: SERVICES.auth.baseUrl,
     method: "POST",
     accessToken: access,

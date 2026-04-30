@@ -1,14 +1,13 @@
 // app/api/document/preview/route.ts
-import { NextRequest } from "next/server"
 import { SERVICES } from "@/app/lib/services"
 import { getValidAccessToken } from "@/app/lib/auth"
 import { jsonFail } from "@/app/lib/apiResponse"
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const access = await getValidAccessToken()
   if (!access) return jsonFail("Unauthorized", 401)
 
-  const upstream = await fetch(`${SERVICES.document.baseUrl}/api/document/view/`, {
+  const upstream = await fetch(`${SERVICES.document.baseUrl}/api/document/documents/preview/`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${access}`,

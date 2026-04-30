@@ -8,7 +8,13 @@ function base64urlDecode(str: string) {
   return Buffer.from(s, "base64").toString("utf8");
 }
 
-export function decodeJwtPayload(token: string): any | null {
+type JwtPayload = {
+  role?: string;
+  roles?: string[];
+  user_type?: string;
+};
+
+export function decodeJwtPayload(token: string): JwtPayload | null {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   try {
@@ -22,9 +28,11 @@ export function hasEmployeeAdminRole(accessToken: string) {
   const payload = decodeJwtPayload(accessToken);
   const role = payload?.role;
   const roles = payload?.roles;
+  const userType = payload?.user_type;
   const set = new Set<string>([
     ...(Array.isArray(roles) ? roles : []),
     ...(typeof role === "string" ? [role] : []),
+    ...(typeof userType === "string" ? [userType] : []),
   ]);
   return set.has("org_admin") || set.has("manager");
 }

@@ -1,10 +1,9 @@
 // app/api/auth/token-refresh/route.ts
-import { NextRequest } from "next/server";
 import { jsonFail, jsonOk } from "@/app/lib/apiResponse";
 import { refreshAccessTokenFromAuthService } from "@/app/lib/auth";
 import { getRefreshToken } from "@/app/lib/cookies"; 
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   // 1. 先取得 refresh token
   const refreshToken = await getRefreshToken();
 

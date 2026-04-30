@@ -15,7 +15,7 @@ export async function DELETE(_req: NextRequest, context: Ctx) {
   const { id } = await Promise.resolve(context.params);
 
   const { res, data } = await gatewayFetch(
-    `/api/auth/employees/${encodeURIComponent(id)}/delete/`,
+    `/api/auth/employees/${encodeURIComponent(id)}/`,
     {
       baseUrl: SERVICES.auth.baseUrl,
       method: "DELETE",
