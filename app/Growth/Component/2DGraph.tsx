@@ -3,24 +3,49 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { hierarchy, tree } from "d3-hierarchy";
+import type { ForceGraphMethods } from "react-force-graph-2d";
 import { useSkillmapStore } from "@/app/lib/skillmapStore";
+import { normalizeSkillScore } from "@/app/lib/skillScore";
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
   ssr: false,
 });
 
-type NodeT = { id: string; name: string; level: number; score: number };
-type LinkT = { source: string; target: string };
+type NodeT = {
+  id?: string | number;
+  name?: string;
+  level?: number;
+  score?: number;
+  x?: number;
+  y?: number;
+  fx?: number;
+  fy?: number;
+  [key: string]: unknown;
+};
+type LinkT = { source: string | number | NodeT; target: string | number | NodeT };
 type GraphT = { nodes: NodeT[]; links: LinkT[] };
+type TreeNode = NodeT & {
+  id: string;
+  children: TreeNode[];
+  _raw?: NodeT;
+};
 
 function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));
 }
 
 /** 節點半徑：畫圖/點擊區一致 */
-function nodeRadius(node: any) {
-  const score = Number(node.score ?? 0); // 0~5
-  return 14 + score * 1.4;
+function nodeRadius(node: Pick<NodeT, "score">) {
+  const { ratio } = normalizeSkillScore(node.score);
+  return 14 + ratio * 7;
+}
+
+function linkEndpointId(endpoint: LinkT["source"]) {
+  if (typeof endpoint === "object" && endpoint !== null && "id" in endpoint) {
+    return String(endpoint.id);
+  }
+
+  return String(endpoint);
 }
 
 /**
@@ -159,8 +184,8 @@ function buildTreeFromGraph(data: GraphT) {
   };
 
   data.links.forEach((l) => {
-    const s = String((l as any).source);
-    const t = String((l as any).target);
+    const s = linkEndpointId(l.source);
+    const t = linkEndpointId(l.target);
     addEdge(s, t);
     addEdge(t, s);
   });
@@ -188,7 +213,7 @@ function buildTreeFromGraph(data: GraphT) {
   }
 
   // 轉成 hierarchy 可吃的 nested object
-  const makeNode = (id: string): any => {
+  const makeNode = (id: string): TreeNode => {
     const n = nodesById.get(id);
     return {
       id,
@@ -206,7 +231,7 @@ function buildTreeFromGraph(data: GraphT) {
   const reachableIds = new Set(Array.from(parent.keys()));
   const prunedNodes = data.nodes.filter((n) => reachableIds.has(String(n.id)));
   const prunedLinks = data.links
-    .map((l) => ({ source: String((l as any).source), target: String((l as any).target) }))
+    .map((l) => ({ source: linkEndpointId(l.source), target: linkEndpointId(l.target) }))
     .filter((l) => reachableIds.has(l.source) && reachableIds.has(l.target));
 
   return { rootObj, prunedNodes, prunedLinks };
@@ -214,7 +239,7 @@ function buildTreeFromGraph(data: GraphT) {
 
 /** 用 d3.tree 做 radial tree layout，輸出固定座標的 graphData */
 function layoutRadialTree(
-  rootObj: any,
+  rootObj: TreeNode,
   nodes: NodeT[],
   links: { source: string; target: string }[],
   levelDistance = 170
@@ -227,7 +252,7 @@ function layoutRadialTree(
   const radius = Math.max(220, (maxDepth + 1) * levelDistance);
 
   // tree layout：x=角度(0~2π)，y=半徑(0~radius)
-  const t = tree<any>()
+  const t = tree<TreeNode>()
     .size([2 * Math.PI, radius])
     .separation((a, b) => (a.parent === b.parent ? 1 : 1.6));
 
@@ -255,17 +280,17 @@ function layoutRadialTree(
       // 也給初始 x/y，避免第一次閃一下
       x: p.x,
       y: p.y,
-    } as any;
+    };
   });
 
   // links 用原本的（也可以改成只用 parent-child links，但保留原圖會比較「關聯」完整）
-  const outLinks = links.map((l) => ({ source: l.source, target: l.target })) as any;
+  const outLinks = links.map((l) => ({ source: l.source, target: l.target }));
 
-  return { nodes: outNodes as any, links: outLinks as any };
+  return { nodes: outNodes, links: outLinks };
 }
 
 function SkillTree2D({ data }: { data: GraphT }) {
-  const fgRef = useRef<any>(null);
+  const fgRef = useRef<ForceGraphMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const { selectedNodes, toggleNodeSelection } = useSkillmapStore();
@@ -317,27 +342,30 @@ function SkillTree2D({ data }: { data: GraphT }) {
           enableNodeDrag={false}         // ✅ 固定 layout，不允許拖（你也可以改 true，但會破壞樹）
           nodeRelSize={1}                // 不重要，但可保留
 
-          nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
+          nodePointerAreaPaint={(node: NodeT, color: string, ctx: CanvasRenderingContext2D) => {
             const r = nodeRadius(node);
+            const x = Number(node.x ?? 0);
+            const y = Number(node.y ?? 0);
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+            ctx.arc(x, y, r, 0, Math.PI * 2);
             ctx.fill();
           }}
 
-          nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-            const score = Number(node.score ?? 0); // 0~5
-            const ratio = clamp01(score / 5);
+          nodeCanvasObject={(node: NodeT, ctx: CanvasRenderingContext2D, globalScale: number) => {
+            const ratio = clamp01(normalizeSkillScore(node.score).ratio);
             const r = nodeRadius(node);
+            const x = Number(node.x ?? 0);
+            const y = Number(node.y ?? 0);
 
             // 如果該節點被選中，畫出亮色外圍光圈
             const isSelected = selectedNodes.some(sn => sn.id === String(node.id));
             if (isSelected) {
-              drawSelectedGlow(ctx, node.x, node.y, r);
+              drawSelectedGlow(ctx, x, y, r);
             }
 
             // 液位式節點
-            drawLiquidNode(ctx, node.x, node.y, r, ratio);
+            drawLiquidNode(ctx, x, y, r, ratio);
 
             // label
             const label = String(node.name ?? node.id);
@@ -346,13 +374,13 @@ function SkillTree2D({ data }: { data: GraphT }) {
             ctx.textAlign = "center";
             ctx.textBaseline = "bottom";
             ctx.fillStyle = "rgba(255,255,255,0.95)";
-            ctx.fillText(label, node.x, node.y - r - 4);
+            ctx.fillText(label, x, y - r - 4);
           }}
 
           linkColor={() => "rgba(255,255,255,0.28)"}
           linkWidth={1}
 
-          onNodeClick={(node: any) => {
+          onNodeClick={(node: NodeT) => {
             toggleNodeSelection({
               id: String(node.id),
               name: String(node.name ?? node.id),

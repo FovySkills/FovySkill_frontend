@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import React, { useMemo } from "react";
 import { useSkillmapStore } from "@/app/lib/skillmapStore";
 import { extractSkillGraphData, type SkillGraphData } from "@/app/lib/skillGraph";
+import { normalizeSkillScore } from "@/app/lib/skillScore";
 
 interface SidebarProps {
     showSidebar: boolean;
@@ -149,13 +150,15 @@ export default function Sidebar({
             const id = String(n.id ?? "");
             return !name.includes("我") && id !== "Me" && name !== "Me";
         });
-        const sorted = validNodes.sort((a, b) => Number(b.score ?? 0) - Number(a.score ?? 0));
+        const sorted = validNodes.sort(
+            (a, b) => normalizeSkillScore(b.score).ratio - normalizeSkillScore(a.score).ratio
+        );
         const top3 = sorted.slice(0, 3);
         const glowOptions: ("orange" | "yellow" | "blue")[] = ["orange", "yellow", "blue"];
         
         return top3.map((node, i) => ({
             name: String(node.name ?? node.id),
-            tag: `Score: ${Number(node.score ?? 0).toFixed(1)}`, // 使用副標顯示分數
+            tag: `Score: ${normalizeSkillScore(node.score).percent}%`,
             glow: glowOptions[i] || "blue"
         }));
     }, [parsedGraph]);
@@ -170,7 +173,7 @@ export default function Sidebar({
                 result.push({
                     title: node.name,
                     subtitle: `Level ${node.level}`,
-                    count: Math.round(Number(node.score ?? 0) * 20), // 轉換為 0-100 的進度顯示示範
+                    count: normalizeSkillScore(node.score).percent,
                     rightHint: "當前熟練度"
                 });
             } else {

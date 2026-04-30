@@ -1,7 +1,21 @@
 import ThreeDGraph from "./3DGraph";
 import { toSkillGraphDataString } from "@/app/lib/skillGraph";
 
-export default function SkillMap({ graphData }: { graphData: string |null}) {
+type SkillMapNode = {
+    id?: string | number;
+    name?: string;
+    level?: number;
+    score?: number;
+    [key: string]: unknown;
+};
+
+export default function SkillMap({
+    graphData,
+    onNodeSelect,
+}: {
+    graphData: string | null;
+    onNodeSelect?: (node: SkillMapNode) => void;
+}) {
     const safeGraphData = toSkillGraphDataString(graphData);
 
     if (!safeGraphData) {
@@ -23,7 +37,10 @@ export default function SkillMap({ graphData }: { graphData: string |null}) {
     else {
         return (
             <div className="h-full w-full">
-                <ThreeDGraph graphData={safeGraphData}></ThreeDGraph>
+                <ThreeDGraph
+                    graphData={safeGraphData}
+                    onNodeSelect={onNodeSelect}
+                />
             </div>
         );
 

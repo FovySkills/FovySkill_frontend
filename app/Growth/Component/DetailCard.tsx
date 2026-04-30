@@ -1,41 +1,16 @@
 "use client";
 
 import React from "react";
+import {
+  normalizeSkillScore,
+  skillScoreDots,
+  skillScoreLevel,
+} from "@/app/lib/skillScore";
 
-type Metric = {
+export type Metric = {
   label: string;
-  value: number; // 0~100
+  value: number;
 };
-
-function levelFromScore(score: number) {
-  if (score >= 80) return "Advanced";
-  if (score >= 60) return "Intermediate";
-  if (score >= 40) return "Basic";
-  return "Beginner";
-}
-
-// 用 6 格評等（你圖看起來類似 6 格）
-function toDots(score: number, totalDots = 5) {
-  let normalized: number;
-
-  // 小於等於 5 → 當 5 分制
-  if (score <= 5) {
-    normalized = score;
-  }
-  // 大於 5 → 當 100 分制
-  else {
-    normalized = (score / 100) * totalDots;
-  }
-
-  const filled = Math.floor(normalized);
-  const hasHalf = normalized - filled >= 0.5;
-
-  return {
-    filled,
-    half: hasHalf ? 1 : 0,
-    empty: totalDots - filled - (hasHalf ? 1 : 0),
-  };
-}
 
 function Dot({ kind }: { kind: "filled" | "half" | "empty" }) {
   // half 用線性漸層做「半月」
@@ -56,18 +31,19 @@ function Dot({ kind }: { kind: "filled" | "half" | "empty" }) {
 export default function DetailCard({
   title,
   score,
-  metrics,
+  metrics = [{ label: "技能分數", value: score }],
 }: {
   title: string;
   score: number;
-  metrics: Metric[];
+  metrics?: Metric[];
 }) {
-  const level = levelFromScore(score);
+  const scoreInfo = normalizeSkillScore(score);
+  const level = skillScoreLevel(score);
 
   return (
     <div
       className="
-        w-[420px] rounded-[44px] p-6
+        w-[min(420px,calc(100vw-2rem))] rounded-[44px] p-6
         bg-[#2f2f2f]
         shadow-[0_0_40px_rgba(0,0,0,0.65)]
         relative
@@ -97,21 +73,28 @@ export default function DetailCard({
             className="
               w-44 h-44 rounded-full
               flex flex-col items-center justify-center
-              relative
+              relative overflow-hidden
+              bg-[#3a3a3a]
+              shadow-[inset_0_0_26px_rgba(0,0,0,0.58)]
             "
           >
-            <div className="text-white text-5xl font-semibold leading-none">
-              {score*10}
+            <div
+              className="absolute inset-x-0 bottom-0 bg-white/20"
+              style={{ height: `${scoreInfo.percent}%` }}
+            />
+            <div className="relative text-white text-5xl font-semibold leading-none">
+              {scoreInfo.percent}
               <span className="text-base font-normal ml-1">%</span>
             </div>
-            <div className="text-white/85 mt-2 text-sm">{level}</div>
+            <div className="relative text-white/85 mt-2 text-sm">{level}</div>
           </div>
         </div>
       </div>
 
       <div className="mt-8 space-y-4">
         {metrics.map((m) => {
-          const dots = toDots(m.value, 5);
+          const dots = skillScoreDots(m.value, 5);
+          const percent = normalizeSkillScore(m.value).percent;
           return (
             <div
               key={m.label}
@@ -135,8 +118,8 @@ export default function DetailCard({
                   ))}
                 </div>
 
-                <div className="text-white/80 text-sm w-8 text-right">
-                  {m.value}
+                <div className="text-white/80 text-sm w-10 text-right">
+                  {percent}%
                 </div>
               </div>
             </div>

@@ -9,9 +9,42 @@ import Sidebar from "./Component/Sidebar";
 import SkillMap from "./Component/SkillMap";
 import Growth from "./Component/Growth";
 import UploadArea from "./Component/UploadArea";
+import DetailCard, { type Metric } from "./Component/DetailCard";
 
 import { useSkillmapStore } from "@/app/lib/skillmapStore";
 import { readJsonResponse, toSkillGraphDataString } from "@/app/lib/skillGraph";
+
+type SelectedSkillNode = {
+  id?: string | number;
+  name?: string;
+  level?: number;
+  score?: number;
+  metrics?: unknown;
+  [key: string]: unknown;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function getNodeMetrics(node: SelectedSkillNode): Metric[] {
+  if (Array.isArray(node.metrics)) {
+    const metrics = node.metrics.flatMap((metric) => {
+      if (!isRecord(metric)) return [];
+
+      const label = metric.label ?? metric.name ?? metric.title;
+      const value = metric.value ?? metric.score;
+      const numericValue = Number(value);
+
+      if (!label || !Number.isFinite(numericValue)) return [];
+      return [{ label: String(label), value: numericValue }];
+    });
+
+    if (metrics.length > 0) return metrics;
+  }
+
+  return [{ label: "技能分數", value: Number(node.score ?? 0) }];
+}
 
 export default function SkillMapPage() {
   const router = useRouter();
@@ -20,6 +53,7 @@ export default function SkillMapPage() {
   const [showGrowth, setShowGrowth] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [selectedSkillNode, setSelectedSkillNode] = useState<SelectedSkillNode | null>(null);
 
   const { graphData, updatedAt, setGraphData, clearGraph } = useSkillmapStore();
 
@@ -38,6 +72,7 @@ export default function SkillMapPage() {
   function showGrowthController() {
     setShowSkillMap(false);
     setShowGrowth(true);
+    setSelectedSkillNode(null);
   }
 
   const handleUploadSuccess = () => {
@@ -137,6 +172,10 @@ export default function SkillMapPage() {
     };
   }, [checkingLogin, updatedAt, setGraphData, clearGraph, router]);
 
+  useEffect(() => {
+    setSelectedSkillNode(null);
+  }, [graphData]);
+
   if (checkingLogin) {
     return (
       <div className="flex justify-center items-center h-screen w-full text-white/90">
@@ -170,15 +209,38 @@ export default function SkillMapPage() {
           />
         </div>
 
-        <div>
+        <div className="relative min-h-0">
           {loadingGraph && (
             <div className="flex items-center justify-center h-screen w-full text-white">
               Loading skillmap...
             </div>
           )}
 
-          {!loadingGraph && showSkillMap && <SkillMap graphData={graphData} />}
+          {!loadingGraph && showSkillMap && (
+            <SkillMap
+              graphData={graphData}
+              onNodeSelect={setSelectedSkillNode}
+            />
+          )}
           {!loadingGraph && showGrowth && <Growth graphData={graphData} />}
+
+          {!loadingGraph && showSkillMap && selectedSkillNode && (
+            <div className="absolute right-6 top-1/2 z-30 max-h-full -translate-y-1/2 overflow-y-auto py-4">
+              <button
+                type="button"
+                aria-label="Close detail card"
+                onClick={() => setSelectedSkillNode(null)}
+                className="absolute right-5 top-9 z-10 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20"
+              >
+                ✕
+              </button>
+              <DetailCard
+                title={String(selectedSkillNode.name ?? selectedSkillNode.id ?? "技能節點")}
+                score={Number(selectedSkillNode.score ?? 0)}
+                metrics={getNodeMetrics(selectedSkillNode)}
+              />
+            </div>
+          )}
         </div>
 
         <div className="h-full w-full relative">

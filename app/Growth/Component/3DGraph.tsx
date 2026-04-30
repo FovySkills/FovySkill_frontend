@@ -3,14 +3,40 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import * as THREE from "three";
+import type { ForceGraphMethods } from "react-force-graph-3d";
 
 const ForceGraph3D = dynamic(() => import("react-force-graph-3d"), {
   ssr: false,
 });
 
-type NodeT = { id: string; name: string; level: number; score: number };
-type LinkT = { source: string; target: string };
+type NodeT = {
+  id?: string | number;
+  name?: string;
+  level?: number;
+  score?: number;
+  x?: number;
+  y?: number;
+  z?: number;
+  vx?: number;
+  vy?: number;
+  vz?: number;
+  [key: string]: unknown;
+};
+type LinkT = { source: string | NodeT; target: string | NodeT };
 type GraphT = { nodes: NodeT[]; links: LinkT[] };
+type SkillTree3DProps = {
+  data: GraphT;
+  onNodeSelect?: (node: NodeT) => void;
+};
+
+function getLevelColor(level: unknown) {
+  const normalizedLevel = Number(level ?? 0);
+
+  if (normalizedLevel === 1) return "#007BFF";
+  if (normalizedLevel === 2) return "#28A745";
+  if (normalizedLevel === 3) return "#FFC107";
+  return "#66ccff";
+}
 
 function createTextSprite(text: string) {
   const canvas = document.createElement("canvas");
@@ -51,8 +77,8 @@ function createTextSprite(text: string) {
   return sprite;
 }
 
-function SkillTree3D({ data }: { data: GraphT }) {
-  const fgRef = useRef<any>(null);
+function SkillTree3D({ data, onNodeSelect }: SkillTree3DProps) {
+  const fgRef = useRef<ForceGraphMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -77,20 +103,25 @@ function SkillTree3D({ data }: { data: GraphT }) {
   }, [size]);
 
   useEffect(() => {
-    if (!fgRef.current) return;
-    fgRef.current.d3Force("charge").strength(-700).distanceMax(280);
-    fgRef.current.d3Force("link").distance(120);
-    fgRef.current.d3AlphaDecay(0.02);
-    fgRef.current.d3VelocityDecay(0.22);
-    fgRef.current.d3ReheatSimulation();
+    const graph = fgRef.current;
+    if (!graph) return;
+
+    const chargeForce = graph.d3Force("charge");
+    chargeForce?.strength?.(-700);
+    chargeForce?.distanceMax?.(280);
+
+    const linkForce = graph.d3Force("link");
+    linkForce?.distance?.(120);
+
+    graph.d3ReheatSimulation();
   }, [data]);
 
   useEffect(() => {
-    if (!fgRef.current) return;
+    const graph = fgRef.current;
+    if (!graph) return;
 
     const radial = (alpha: number) => {
-      const nodes = fgRef.current.graphData().nodes;
-      for (const n of nodes) {
+      for (const n of data.nodes) {
         const lv = Number(n.level ?? 0);
         const targetR = lv * 60; 
         if (targetR === 0) continue;
@@ -107,13 +138,15 @@ function SkillTree3D({ data }: { data: GraphT }) {
       }
     };
 
-    fgRef.current.d3Force("radial", radial);
-    fgRef.current.d3ReheatSimulation();
+    graph.d3Force("radial", radial);
+    graph.d3ReheatSimulation();
 
     return () => {
       try {
-        fgRef.current.d3Force("radial", null);
-      } catch {}
+        graph.d3Force("radial", null);
+      } catch {
+        // The graph instance can be disposed before effect cleanup finishes.
+      }
     };
   }, [data]);
 
@@ -125,23 +158,18 @@ function SkillTree3D({ data }: { data: GraphT }) {
           width={size.width}
           height={size.height}
           graphData={data}
+          forceEngine="d3"
+          d3AlphaDecay={0.02}
+          d3VelocityDecay={0.22}
           backgroundColor="#232323"
           enableNavigationControls={true}
           showNavInfo={false} 
           nodeThreeObjectExtend={true}
-          nodeThreeObject={(node: any) => {
+          nodeThreeObject={(node: NodeT) => {
             const radius = 5 + Number(node.score ?? 3);
+            const color = getLevelColor(node.level);
 
             const geometry = new THREE.SphereGeometry(radius, 18, 18);
-            const color =
-              node.level === 1
-                ? "#007BFF"
-                : node.level === 2
-                ? "#28A745"
-                : node.level === 3
-                ? "#FFC107"
-                : "#66ccff";
-
             const material = new THREE.MeshStandardMaterial({
               color,
               opacity: 0.85,
@@ -167,9 +195,8 @@ function SkillTree3D({ data }: { data: GraphT }) {
           linkOpacity={0.7}
           linkDirectionalParticles={1}
           linkDirectionalParticleWidth={1}
-          onNodeClick={(node: any) => {
-            // 你之後可以 setSelectedNode(node) 開 detail card
-            console.log("clicked node:", node);
+          onNodeClick={(node: NodeT) => {
+            onNodeSelect?.(node);
           }}
         />
       )}
@@ -177,7 +204,13 @@ function SkillTree3D({ data }: { data: GraphT }) {
   );
 }
 
-export default function SkillTree({ graphData }: { graphData: string }) {
+export default function SkillTree({
+  graphData,
+  onNodeSelect,
+}: {
+  graphData: string;
+  onNodeSelect?: (node: NodeT) => void;
+}) {
   const data = useMemo<GraphT | null>(() => {
     try {
       if (!graphData) return null;
@@ -189,5 +222,10 @@ export default function SkillTree({ graphData }: { graphData: string }) {
 
   if (!data) return <div className="w-full h-full" />;
 
-  return <SkillTree3D data={data} />;
+  return (
+    <SkillTree3D
+      data={data}
+      onNodeSelect={onNodeSelect}
+    />
+  );
 }

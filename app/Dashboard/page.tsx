@@ -118,13 +118,13 @@ export default function Dashboard() {
   const isManager = String(me?.user_type ?? "").toLowerCase() === "employee"
 
   return (
-    <div className="relative h-screen w-full">
-      <div className={isManager ? "grid grid-rows-[35%_65%] w-full h-full" : "grid grid-cols-2 w-full h-full"}>
+    <div className="relative min-h-screen w-full overflow-y-auto">
+      <div className={isManager ? "grid min-h-screen w-full grid-rows-[auto_1fr] gap-y-6 py-8 md:grid-rows-[minmax(260px,35vh)_minmax(420px,1fr)] md:gap-y-0 md:py-0" : "grid min-h-screen w-full grid-cols-1 gap-y-6 py-8 md:grid-cols-2 md:gap-y-0 md:py-0"}>
         {isManager && (
           <ManagerTeamButton onClick={() => RedirectToPage(MANAGER_TEAM_ROUTE)} />
         )}
 
-        <div className={isManager ? "grid grid-cols-2 w-full h-full" : "contents"}>
+        <div className={isManager ? "grid w-full min-h-0 grid-cols-1 gap-y-6 md:grid-cols-2 md:gap-y-0" : "contents"}>
           <SelectionCard
             title="我要成長"
             description="技能提升"
@@ -158,20 +158,21 @@ export default function Dashboard() {
 
 function ManagerTeamButton({ onClick }: { onClick: () => void }) {
   return (
-    <section className="w-[90%] h-[75%] m-auto rounded-[20px] bg-[rgba(51,51,51,1)] shadow-[0_0_40px_rgba(0,0,0,0.8)] text-white grid grid-rows-[1fr_auto] overflow-hidden">
-      <div className="flex flex-col justify-center px-12">
-        <h1 className="text-[34px] font-semibold mb-3">建立與追蹤團隊</h1>
-        <p className="text-white/85 text-[24px] mb-4">成員管理 檢視夥伴技能樹</p>
-        <p className="text-white/55 text-[15px] leading-relaxed">
+    <section className="w-[90%] min-h-[260px] h-auto md:h-[78%] m-auto rounded-[20px] bg-[rgba(51,51,51,1)] shadow-[0_0_40px_rgba(0,0,0,0.8)] text-white grid grid-rows-[minmax(0,1fr)_auto] overflow-visible">
+      <div className="flex min-h-0 flex-col justify-center px-8 lg:px-12 py-6">
+        <h1 className="text-[26px] lg:text-[34px] font-semibold mb-3 leading-tight">建立與追蹤團隊</h1>
+        <p className="text-white/85 text-[18px] lg:text-[24px] mb-4 leading-tight">成員管理 檢視夥伴技能樹</p>
+        <p className="text-white/55 text-[13px] lg:text-[15px] leading-relaxed">
           指派，管理團隊成員賬號，檢視團隊成員個人技能樹，追蹤伙伴成長
         </p>
       </div>
 
-      <div className="w-full flex justify-end pr-12 pb-8">
+      <div className="w-full px-8 lg:px-12 pb-5 lg:pb-8 overflow-visible">
         <DashboardButton
           title="管理團隊"
           ButtonAction={onClick}
           buttonLayout="shadow-[10px_0_20px_2px_rgba(200,80,60,0.7),-10px_0_20px_2px_rgba(230,190,40,0.6)]"
+          wrapperClassName="justify-end"
         />
       </div>
     </section>
