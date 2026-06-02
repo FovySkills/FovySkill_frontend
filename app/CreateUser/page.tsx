@@ -8,6 +8,7 @@ type RegisterPayload = {
   password: string
   user_type: "manager" | "employee"
   department_id: number
+  department_name: string
 }
 
 export default function EmployeesCreatePage() {
@@ -19,6 +20,7 @@ export default function EmployeesCreatePage() {
         password: "test_password",
         user_type: "employee",
         department_id: 1,
+        department_name: "1",
       } satisfies RegisterPayload,
       null,
       2
@@ -109,6 +111,7 @@ export default function EmployeesCreatePage() {
           password: "test_password",
           user_type,
           department_id: 1,
+          department_name: "1",
         } satisfies RegisterPayload,
         null,
         2

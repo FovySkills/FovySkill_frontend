@@ -56,6 +56,8 @@ export default function LoginPage() {
                 email: email,
                 password: password,
                 user_type: "employee",
+                department_id: 1,
+                department_name: "1",
             }
 
             const res = await fetch("/api/auth/register", {
