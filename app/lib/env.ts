@@ -1,8 +1,8 @@
 // lib/env.ts
 export const ENV = {
-  // AUTH_BASE: process.env.AUTH_SVC_BASE_URL!,
-  // DOC_BASE: process.env.DOCUMENT_SVC_BASE_URL!,
-  // TREE_BASE: process.env.TREE_SVC_BASE_URL!,
+  AUTH_BASE: process.env.AUTH_SVC_BASE_URL!,
+  DOC_BASE: process.env.DOCUMENT_SVC_BASE_URL!,
+  TREE_BASE: process.env.TREE_SVC_BASE_URL!,
 
   ACCESS_COOKIE: process.env.ACCESS_COOKIE || "access_token",
   REFRESH_COOKIE: process.env.REFRESH_COOKIE || "refresh_token",
