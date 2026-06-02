@@ -8,7 +8,8 @@ function isPublic(pathname: string) {
     "/CreateUser",
     "/Signup",
     "/contact",
-    "/pricing"
+    "/pricing",
+    "/SwitchCareers"
   ]
   if (exactMatches.includes(pathname)) return true
 
