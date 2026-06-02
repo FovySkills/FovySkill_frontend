@@ -55,7 +55,19 @@ export function extractSkillGraphData(value: unknown, depth = 0): SkillGraphData
   if (direct) return direct;
   if (!isRecord(value)) return null;
 
-  for (const key of ["data", "result", "tree", "graph", "skillmap", "skill_map"]) {
+  for (const key of [
+    "data",
+    "result",
+    "tree",
+    "tree_json",
+    "skill_tree",
+    "skillTree",
+    "graph",
+    "graph_data",
+    "graphData",
+    "skillmap",
+    "skill_map",
+  ]) {
     const nested = extractSkillGraphData(value[key], depth + 1);
     if (nested) return nested;
   }

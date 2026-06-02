@@ -52,7 +52,12 @@ export default function UploadArea({
 
       if (!res.ok) {
         setGraphData(null);
-        throw new Error("Upload failed");
+        const errorPayload = await readJsonResponse(res);
+        const message =
+          errorPayload && typeof errorPayload === "object" && "message" in errorPayload
+            ? String((errorPayload as { message?: unknown }).message)
+            : "Upload failed";
+        throw new Error(message);
       }
 
       const data = await readJsonResponse(res);

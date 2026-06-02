@@ -25,11 +25,11 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => null);
     if (!body?.username || !body?.password) return jsonFail("Missing username/password", 400);
 
-    const { res, data } = await gatewayFetch("/api/auth/token/", {
+    const { res, data } = await gatewayFetch("/api/auth/login/", {
       baseUrl: SERVICES.auth.baseUrl,
       method: "POST",
       body: JSON.stringify(body),
-      timeoutMs: 3000, // ✅ 測試先縮短，不要每次卡 8 秒
+      timeoutMs: 3000,
     });
 
     if (!res.ok) return jsonFail("Login failed", res.status, data);

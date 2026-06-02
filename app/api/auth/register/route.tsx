@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       email,
       password,
       user_type,
+      department_id: 1,
     }),
     headers: { "Content-Type": "application/json" },
   });

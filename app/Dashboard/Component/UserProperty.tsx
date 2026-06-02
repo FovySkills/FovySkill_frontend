@@ -1,27 +1,25 @@
 import { motion, AnimatePresence } from "framer-motion"
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
+
+type UserProfile = {
+  username?: string
+  position?: string
+  department_name?: string
+  email?: string
+}
 
 interface UserPropertyProps {
   isVisible: boolean
   setVisible: (visible: boolean) => void
-  me: any
+  me: UserProfile
 }
 
 export default function UserProperty({ isVisible, setVisible, me }: UserPropertyProps) {
-  const [username, setUsername] = useState<string>("")
-  const [position, setPosition] = useState<string>("")
-  const [department, setDepartment] = useState<string>("")
-  const [email, setEmail] = useState<string>("")
   const [isBellActive, setBellActive] = useState<boolean>(false)
-
-  useEffect(() => {
-    if (me) {
-      if (me.username)       setUsername(me.username)
-      if (me.position)       setPosition(me.position)
-      if (me.department_name) setDepartment(me.department_name)
-      if (me.email)          setEmail(me.email)
-    }
-  }, [me])
+  const username = me.username ?? ""
+  const position = me.position ?? ""
+  const department = me.department_name ?? ""
+  const email = me.email ?? ""
 
   async function logoutHandler() {
     try {
@@ -58,23 +56,9 @@ export default function UserProperty({ isVisible, setVisible, me }: UserProperty
               onClick={(e) => e.stopPropagation()}
               className="bg-[#2a2a2a]/95 backdrop-blur-3xl border border-white/10 p-10 rounded-[32px] shadow-[0_-10px_50px_rgba(0,0,0,0.5)] text-white"
             >
-              <div className="grid grid-cols-12 gap-12">
-                
-                <div className="col-span-5 space-y-4">
-                  <div className="flex justify-between items-center text-sm text-zinc-300 mb-6 px-2">
-                    <span className="tracking-widest flex-1 text-center">正在學習中的技能</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-zinc-500">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 5.25 7.5 7.5 7.5-7.5m-15 6 7.5 7.5 7.5-7.5" />
-                    </svg>
-                  </div>
-                  
-                  <SkillCard title="現金管理與支付方案" percent={87} dept="企金部" glow="shadow-[0_0_30px_rgba(255,255,255,0.06)]" />
-                  <SkillCard title="整合型金融方案設計與建議" percent={45} dept="數金部" glow="shadow-[0_0_30px_rgba(200,150,255,0.08)]" />
-                  <SkillCard title="客戶風險等級" percent={32} dept="客服部" glow="shadow-[0_0_30px_rgba(255,255,255,0.06)]" />
-                </div>
-
-                <div className="col-span-7 flex flex-col justify-between pt-2">
-                  <div className="flex items-start gap-12 mb-8">
+              <div className="mx-auto flex w-full max-w-[700px] flex-col items-center">
+                <div className="flex w-full flex-col justify-between pt-2">
+                  <div className="mb-8 flex items-start justify-center gap-12">
                     <div className="flex flex-col items-center">
                       <div className="w-24 h-24 bg-zinc-200 rounded-full flex items-center justify-center mb-4 text-zinc-600 shadow-inner">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
@@ -101,16 +85,7 @@ export default function UserProperty({ isVisible, setVisible, me }: UserProperty
                     </div>
                   </div>
 
-                  <div className="space-y-4 mb-10 pl-2">
-                    <SettingRow
-                      icon={
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                        </svg>
-                      }
-                      label="Password"
-                      value="0alefnblkbkn."
-                    />
+                  <div className="mx-auto mb-10 w-full max-w-[520px] space-y-4">
                     <SettingRow
                       icon={
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -122,7 +97,7 @@ export default function UserProperty({ isVisible, setVisible, me }: UserProperty
                     />
                   </div>
 
-                  <div className="flex items-center gap-4 pl-2">
+                  <div className="mx-auto flex w-full max-w-[520px] items-center gap-4">
                     <div className="w-[100px] h-12 bg-[#202020] rounded-full p-1 flex items-center justify-between border border-white/5 shadow-inner cursor-pointer group">
                       <div className="w-10 h-10 bg-[#3a3a3a] rounded-full flex items-center justify-center shadow-md group-hover:bg-[#444] transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-white">
@@ -154,34 +129,13 @@ export default function UserProperty({ isVisible, setVisible, me }: UserProperty
                       </svg>
                     </button>
                   </div>
-                </div>
               </div>
+            </div>
             </div>
           </motion.div>
         </>
       )}
     </AnimatePresence>
-  )
-}
-
-function SkillCard({ title, percent, dept, glow }: { title: string; percent: number; dept: string; glow: string }) {
-  return (
-    <div className={`bg-[#202020] border border-white/5 rounded-3xl p-5 flex items-center gap-6 ${glow} relative overflow-hidden`}>
-      <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-      
-      <div className="flex flex-col items-center justify-center w-[20%]">
-        <div className="w-[46px] h-[46px] rounded-full bg-[radial-gradient(circle_at_30%_30%,_rgba(255,255,255,0.9)_0%,_rgba(100,100,100,0.4)_40%,_rgba(0,0,0,0.8)_100%)] shadow-inner mb-2" />
-        <span className="text-[11px] font-mono tracking-wider text-zinc-300">{percent} %</span>
-      </div>
-      
-      <div className="flex flex-col flex-1">
-        <div className="text-[15px] font-medium text-white mb-4 tracking-wide text-center mr-8">{title}</div>
-        <button className="w-full bg-[#2a2a2a] hover:bg-[#333] py-2.5 px-6 rounded-full flex justify-between items-center text-[11px] text-zinc-400 border border-white/5 transition-colors">
-          <span className="tracking-wide">來自 {dept} 的專案</span>
-          <span className="text-white">&gt;</span>
-        </button>
-      </div>
-    </div>
   )
 }
 

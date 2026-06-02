@@ -1,25 +1,25 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Home, Search, Users } from "lucide-react";
-import * as THREE from "three";
-import type { ForceGraphMethods, LinkObject, NodeObject } from "react-force-graph-3d";
+import { Search, Users } from "lucide-react";
 
 import { extractSkillGraphData } from "@/app/lib/skillGraph";
+import SkillTree from "@/app/Growth/Component/3DGraph";
 
-const ForceGraph3D = dynamic(() => import("react-force-graph-3d"), {
-  ssr: false,
-});
-
-type SkillNode = NodeObject<{
+type SkillNode = {
+  id?: string | number;
   name?: string;
   level?: number;
   score?: number | null;
-}>;
+  [key: string]: unknown;
+};
 
-type SkillLink = LinkObject<SkillNode>;
+type SkillLink = {
+  source: string | number | SkillNode;
+  target: string | number | SkillNode;
+  [key: string]: unknown;
+};
 
 type SkillGraph = {
   name: string;
@@ -29,20 +29,30 @@ type SkillGraph = {
 
 type Employee = {
   id: number | string;
+  user_id?: number | string;
   username: string;
   first_name?: string;
   last_name?: string;
+  real_name?: string | null;
   user_type?: string | null;
   position?: string | null;
   title?: string | null;
+  profile?: {
+    id?: number | string;
+    user_id?: number | string;
+    real_name?: string | null;
+    user_type?: string | null;
+  } | null;
 };
 
 type TeamMember = {
   id: string;
+  userId: string;
   name: string;
   position: string;
   graph: SkillGraph | null;
-  graphStatus: "loading" | "ready" | "empty" | "error";
+  graphStatus: "idle" | "loading" | "ready" | "empty" | "error";
+  graphError?: string;
 };
 
 type EmployeesResponse = {
@@ -50,6 +60,7 @@ type EmployeesResponse = {
   data?:
     | {
         results?: Employee[];
+        employees?: Employee[];
       }
     | Employee[];
 };
@@ -68,12 +79,30 @@ async function readJson<T>(res: Response): Promise<T | null> {
 function getEmployees(payload: EmployeesResponse | null) {
   if (!payload) return [];
   if (Array.isArray(payload.data)) return payload.data;
-  return payload.data?.results ?? [];
+  return payload.data?.results ?? payload.data?.employees ?? [];
 }
 
 function getDisplayName(employee: Employee) {
+  if (employee.real_name) return employee.real_name;
+  if (employee.profile?.real_name) return employee.profile.real_name;
+
   const fullName = [employee.first_name, employee.last_name].filter(Boolean).join(" ").trim();
   return fullName || employee.username || `使用者 ${employee.id}`;
+}
+
+function getEmployeeUserId(employee: Employee) {
+  return String(employee.user_id ?? employee.profile?.user_id ?? employee.id);
+}
+
+function getApiErrorMessage(payload: unknown, fallback: string) {
+  if (!payload || typeof payload !== "object") return fallback;
+  const record = payload as Record<string, unknown>;
+  const message = record.message ?? record.detail;
+
+  if (typeof message === "string") return message;
+  if (message && typeof message === "object") return JSON.stringify(message);
+
+  return fallback;
 }
 
 function normalizeGraph(rawData: unknown, member: Pick<TeamMember, "id" | "name">): SkillGraph | null {
@@ -90,198 +119,6 @@ function normalizeGraph(rawData: unknown, member: Pick<TeamMember, "id" | "name"
   };
 }
 
-function getNodeColor(level?: number) {
-  if (level === 0) return "#f8fafc";
-  if (level === 1) return "#38bdf8";
-  if (level === 2) return "#22c55e";
-  if (level === 3) return "#f59e0b";
-  if (level === 4) return "#f97316";
-  if (level === 5) return "#a855f7";
-  return "#94a3b8";
-}
-
-function getScoreColor(score?: number | null) {
-  if (typeof score !== "number" || Number.isNaN(score)) return "#64748b";
-  if (score >= 8) return "#14b8a6";
-  if (score >= 6.5) return "#22c55e";
-  if (score >= 5) return "#eab308";
-  if (score >= 3) return "#f97316";
-  return "#ef4444";
-}
-
-function getScoreRatio(score?: number | null) {
-  if (typeof score !== "number" || Number.isNaN(score)) return 0;
-  return Math.min(Math.max(score / 10, 0), 1);
-}
-
-function createTextSprite(text: string) {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d")!;
-  const fontSize = 72;
-
-  ctx.font = `600 ${fontSize}px Arial`;
-  const textWidth = ctx.measureText(text).width;
-  canvas.width = Math.ceil(textWidth + 48);
-  canvas.height = fontSize + 44;
-
-  ctx.font = `600 ${fontSize}px Arial`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = "rgba(255,255,255,0.96)";
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = THREE.LinearFilter;
-  texture.needsUpdate = true;
-
-  const material = new THREE.SpriteMaterial({
-    map: texture,
-    transparent: true,
-    depthTest: false,
-    depthWrite: false,
-  });
-  const sprite = new THREE.Sprite(material);
-  const scale = 0.09;
-  sprite.renderOrder = 999;
-  sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
-  sprite.position.set(0, 8, 6);
-
-  return sprite;
-}
-
-function createWaterFillTexture(fillRatio: number, fillColor: string) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
-
-  const ctx = canvas.getContext("2d")!;
-  const center = canvas.width / 2;
-  const radius = 112;
-  const fillHeight = radius * 2 * fillRatio;
-  const fillTop = center + radius - fillHeight;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(center, center, radius, 0, Math.PI * 2);
-  ctx.clip();
-
-  ctx.fillStyle = "rgba(15, 15, 15, 0.74)";
-  ctx.fillRect(center - radius, center - radius, radius * 2, radius * 2);
-  ctx.fillStyle = fillColor;
-  ctx.fillRect(center - radius, fillTop, radius * 2, fillHeight);
-
-  ctx.restore();
-  ctx.beginPath();
-  ctx.arc(center, center, radius - 3, 0, Math.PI * 2);
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
-  ctx.lineWidth = 8;
-  ctx.stroke();
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.needsUpdate = true;
-
-  return texture;
-}
-
-function SkillTree3D({ data }: { data: SkillGraph }) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const fgRef = useRef<ForceGraphMethods | undefined>(undefined);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const updateSize = () => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      setDimensions({
-        width: Math.max(320, Math.floor(rect.width)),
-        height: Math.max(320, Math.floor(rect.height)),
-      });
-    };
-
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!fgRef.current) return;
-
-    fgRef.current.cameraPosition({ x: 0, y: 0, z: 230 }, { x: 0, y: 0, z: 0 }, 400);
-
-    const chargeForce = fgRef.current.d3Force("charge");
-    chargeForce?.strength?.(-520);
-    chargeForce?.distanceMax?.(260);
-
-    const linkForce = fgRef.current.d3Force("link");
-    linkForce?.distance?.(92);
-
-    fgRef.current.d3ReheatSimulation?.();
-  }, [data.name, dimensions.width, dimensions.height]);
-
-  return (
-    <div ref={containerRef} className="h-full w-full">
-      {dimensions.width > 0 && dimensions.height > 0 && (
-        <ForceGraph3D
-          key={`${data.name}-${dimensions.width}-${dimensions.height}`}
-          ref={fgRef}
-          width={dimensions.width}
-          height={dimensions.height}
-          graphData={data}
-          forceEngine="d3"
-          d3AlphaDecay={0.025}
-          d3VelocityDecay={0.24}
-          nodeThreeObject={(node: SkillNode) => {
-            const score = typeof node.score === "number" ? node.score : 0;
-            const nodeColor =
-              typeof node.score === "number" ? getScoreColor(node.score) : getNodeColor(node.level);
-            const geometry = new THREE.SphereGeometry(7 + Math.min(score, 10) * 0.55, 28, 28);
-            const material = new THREE.MeshStandardMaterial({
-              color: nodeColor,
-              transparent: true,
-              opacity: typeof node.score === "number" ? 0.3 : 0.88,
-              roughness: 0.72,
-              metalness: 0.08,
-            });
-
-            const group = new THREE.Group();
-            group.add(new THREE.Mesh(geometry, material));
-
-            if (typeof node.score === "number") {
-              const fillMaterial = new THREE.SpriteMaterial({
-                map: createWaterFillTexture(getScoreRatio(node.score), nodeColor),
-                transparent: true,
-                depthTest: false,
-              });
-              const fillSprite = new THREE.Sprite(fillMaterial);
-              const spriteSize = 17 + Math.min(score, 10) * 1.1;
-              fillSprite.scale.set(spriteSize, spriteSize, 1);
-              fillSprite.renderOrder = 10;
-              group.add(fillSprite);
-            }
-
-            group.add(createTextSprite(String(node.name ?? node.id)));
-            return group;
-          }}
-          linkColor={() => "rgba(255,255,255,0.38)"}
-          linkWidth={1}
-          linkOpacity={0.72}
-          linkDirectionalParticles={1}
-          linkDirectionalParticleWidth={1}
-          backgroundColor="#303030"
-          showNavInfo={false}
-        />
-      )}
-    </div>
-  );
-}
-
 export default function TeamUpgradePage() {
   const router = useRouter();
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -289,6 +126,69 @@ export default function TeamUpgradePage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [query, setQuery] = useState("");
+
+  const loadMemberTree = useCallback(async (member: TeamMember) => {
+    if (member.graphStatus === "loading") return;
+
+    setMembers((current) =>
+      current.map((item) =>
+        item.id === member.id
+          ? { ...item, graphStatus: "loading", graphError: undefined }
+          : item
+      )
+    );
+
+    try {
+      const treeRes = await fetch(`/api/tree/latest/${encodeURIComponent(member.userId)}`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (treeRes.status === 404) {
+        setMembers((current) =>
+          current.map((item) =>
+            item.id === member.id ? { ...item, graphStatus: "empty", graph: null } : item
+          )
+        );
+        return;
+      }
+
+      if (!treeRes.ok) {
+        const payload = await readJson<unknown>(treeRes);
+        const graphError = getApiErrorMessage(payload, `Latest tree failed (${treeRes.status})`);
+        setMembers((current) =>
+          current.map((item) =>
+            item.id === member.id
+              ? { ...item, graphStatus: "error", graph: null, graphError }
+              : item
+          )
+        );
+        return;
+      }
+
+      const treeData = await readJson<unknown>(treeRes);
+      const graph = normalizeGraph(treeData, member);
+
+      setMembers((current) =>
+        current.map((item) =>
+          item.id === member.id
+            ? graph
+              ? { ...item, graph, graphStatus: "ready", graphError: undefined }
+              : { ...item, graph: null, graphStatus: "empty", graphError: undefined }
+            : item
+        )
+      );
+    } catch {
+      setMembers((current) =>
+        current.map((item) =>
+          item.id === member.id
+            ? { ...item, graphStatus: "error", graph: null, graphError: "Latest tree request failed" }
+            : item
+        )
+      );
+    }
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -310,49 +210,25 @@ export default function TeamUpgradePage() {
 
         const data = await readJson<EmployeesResponse>(res);
         const employees = getEmployees(data);
-        const baseMembers: TeamMember[] = employees.map((employee) => ({
-          id: String(employee.id),
-          name: getDisplayName(employee),
-          position: employee.position || employee.title || employee.user_type || "employee",
-          graph: null,
-          graphStatus: "loading",
-        }));
+        const baseMembers: TeamMember[] = employees.map((employee) => {
+          const userId = getEmployeeUserId(employee);
+
+          return {
+            id: userId,
+            userId,
+            name: getDisplayName(employee),
+            position: employee.position || employee.title || employee.user_type || employee.profile?.user_type || "employee",
+            graph: null,
+            graphStatus: "idle",
+          };
+        });
 
         if (!alive) return;
         setMembers(baseMembers);
         setActiveMemberId(baseMembers[0]?.id ?? "");
-
-        const loadedMembers = await Promise.all(
-          baseMembers.map(async (member) => {
-            try {
-              const treeRes = await fetch(`/api/tree/latest/${encodeURIComponent(member.id)}`, {
-                method: "GET",
-                credentials: "include",
-                cache: "no-store",
-              });
-
-              if (treeRes.status === 404) {
-                return { ...member, graphStatus: "empty" as const };
-              }
-
-              if (!treeRes.ok) {
-                return { ...member, graphStatus: "error" as const };
-              }
-
-              const treeData = await readJson<unknown>(treeRes);
-              const graph = normalizeGraph(treeData, member);
-
-              return graph
-                ? { ...member, graph, graphStatus: "ready" as const }
-                : { ...member, graphStatus: "empty" as const };
-            } catch {
-              return { ...member, graphStatus: "error" as const };
-            }
-          })
-        );
-
-        if (!alive) return;
-        setMembers(loadedMembers);
+        if (baseMembers[0]) {
+          loadMemberTree(baseMembers[0]);
+        }
       } catch (error) {
         if (!alive) return;
         setMembers([]);
@@ -369,7 +245,7 @@ export default function TeamUpgradePage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [loadMemberTree]);
 
   const filteredMembers = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -411,7 +287,7 @@ export default function TeamUpgradePage() {
         </div>
       </header>
 
-      <section className="grid h-[calc(100vh-112px)] grid-cols-[310px_minmax(0,1fr)] gap-5">
+      <section className="grid h-[calc(100vh-174px)] grid-cols-[310px_minmax(0,1fr)] gap-5">
         <aside className="flex min-h-0 flex-col rounded-[8px] border border-white/10 bg-[#292929] shadow-[0_0_18px_rgba(0,0,0,0.35)]">
           <div className="border-b border-white/10 p-4">
             <label className="flex h-10 items-center gap-2 rounded-full bg-[#353535] px-4 text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
@@ -439,7 +315,10 @@ export default function TeamUpgradePage() {
                 <button
                   key={member.id}
                   type="button"
-                  onClick={() => setActiveMemberId(member.id)}
+                  onClick={() => {
+                    setActiveMemberId(member.id);
+                    loadMemberTree(member);
+                  }}
                   className={[
                     "grid w-full grid-cols-[1fr_auto] items-center gap-3 rounded-[8px] border px-4 py-3 text-left transition",
                     activeMember?.id === member.id
@@ -481,12 +360,13 @@ export default function TeamUpgradePage() {
           </div>
 
           {activeMember?.graphStatus === "ready" && activeMember.graph ? (
-            <SkillTree3D data={activeMember.graph} />
+            <SkillTree graphData={JSON.stringify(activeMember.graph)} />
           ) : (
             <div className="grid h-full place-items-center px-6 text-center text-white/65">
               <div>
                 <p className="text-lg font-semibold text-white/85">
                   {loading || activeMember?.graphStatus === "loading"
+                    || activeMember?.graphStatus === "idle"
                     ? "技能樹載入中"
                     : activeMember
                       ? "這位使用者目前沒有可顯示的技能樹"
@@ -494,27 +374,34 @@ export default function TeamUpgradePage() {
                 </p>
                 <p className="mt-2 text-sm text-white/45">
                   {activeMember?.graphStatus === "error"
-                    ? "最新技能樹 API 回傳錯誤，清單仍保留此使用者。"
-                    : "系統會顯示資料庫內所有使用者；不再依部門分組或顯示部門標籤。"}
+                    ? activeMember.graphError || "最新技能樹 API 回傳錯誤，清單仍保留此使用者。"
+                    : ""}
                 </p>
               </div>
             </div>
           )}
-
-          {filteredMembers.length > 1 && (
-            <ChevronRight className="pointer-events-none absolute right-5 top-1/2 h-8 w-8 -translate-y-1/2 text-white/35" />
-          )}
         </section>
       </section>
 
-      <button
-        type="button"
-        onClick={() => router.push("/Dashboard")}
-        className="fixed bottom-8 right-10 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white shadow-[0_0_24px_rgba(0,0,0,0.8)] duration-300 ease-in-out hover:scale-125"
-        title="Back To Dashboard"
-      >
-        <Home className="h-5 w-5" />
-      </button>
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center mx-15 my-5">
+        <div />
+        <button
+          type="button"
+          onClick={() => router.push("/Dashboard")}
+          className="p-3 inline-flex items-center justify-center w-12 h-12 rounded-full border-2 border-white shadow-[0_0_24px_rgba(0,0,0,0.8)] hover:scale-120 active:scale-90 duration-300 ease-in-out"
+          title="Return Dashboard"
+        >
+          <svg className="size-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            />
+          </svg>
+        </button>
+        <div />
+      </div>
     </main>
   );
 }

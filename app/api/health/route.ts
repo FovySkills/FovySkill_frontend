@@ -26,7 +26,7 @@ export async function GET() {
           latencyMs: Date.now() - start,
         } satisfies HealthResult,
       ];
-    } catch (e: any) {
+    } catch {
       return [
         name,
         {
@@ -42,7 +42,7 @@ export async function GET() {
   const results = await Promise.all(checks);
   const services = Object.fromEntries(results);
 
-  const allOk = Object.values(services).every((s:any) => s.ok);
+  const allOk = Object.values(services).every((s) => (s as HealthResult).ok);
 
   return Response.json(
     {

@@ -114,8 +114,7 @@ export default function Dashboard() {
     router.push(pageName)
   }
 
-  // const isManager = String(me?.user_type ?? "").toLowerCase() === "manager"
-  const isManager = String(me?.user_type ?? "").toLowerCase() === "employee"
+  const isManager = String(me?.user_type ?? "").toLowerCase() === "manager"
 
   return (
     <div className="relative min-h-screen w-full overflow-y-auto">

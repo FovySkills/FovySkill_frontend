@@ -19,7 +19,7 @@ export async function setAccessCookie(access: string) {
     secure: ENV.COOKIE_SECURE,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 15,
+    maxAge: 60 * 60,
   })
 }
 

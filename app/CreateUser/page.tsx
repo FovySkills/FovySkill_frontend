@@ -7,6 +7,7 @@ type RegisterPayload = {
   email: string
   password: string
   user_type: "manager" | "employee"
+  department_id: number
 }
 
 export default function EmployeesCreatePage() {
@@ -17,6 +18,7 @@ export default function EmployeesCreatePage() {
         email: "test_user@example.com",
         password: "test_password",
         user_type: "employee",
+        department_id: 1,
       } satisfies RegisterPayload,
       null,
       2
@@ -106,6 +108,7 @@ export default function EmployeesCreatePage() {
           email: user_type === "manager" ? "test_manager@example.com" : "test_employee@example.com",
           password: "test_password",
           user_type,
+          department_id: 1,
         } satisfies RegisterPayload,
         null,
         2

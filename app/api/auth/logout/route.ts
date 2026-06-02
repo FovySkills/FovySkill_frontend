@@ -2,10 +2,11 @@
 import { SERVICES } from "@/app/lib/services";
 import { gatewayFetch } from "@/app/lib/gatewayFetch";
 import { jsonOk } from "@/app/lib/apiResponse";
-import { clearAuthCookies, getAccessToken } from "@/app/lib/cookies";
+import { clearAuthCookies, getAccessToken, getRefreshToken } from "@/app/lib/cookies";
 
 export async function POST() {
-  const access =await getAccessToken();
+  const access = await getAccessToken();
+  const refresh = await getRefreshToken();
 
   // best-effort：就算後端失敗也清 cookie
   if (access) {
@@ -13,6 +14,7 @@ export async function POST() {
       baseUrl: SERVICES.auth.baseUrl,
       method: "POST",
       accessToken: access,
+      body: refresh ? JSON.stringify({ refresh }) : undefined,
     }).catch(() => null);
   }
 
