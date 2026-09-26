@@ -9,7 +9,7 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
   ssr: false,
 });
 
-type NodeT = { id: string; name: string; level: number; score: number };
+type NodeT = { id: string; name: string; level: number; score: number; status?: "owned" | "recommended" };
 type LinkT = { source: string; target: string };
 type GraphT = { nodes: NodeT[]; links: LinkT[] };
 
@@ -338,6 +338,18 @@ function SkillTree2D({ data }: { data: GraphT }) {
 
             // 液位式節點
             drawLiquidNode(ctx, node.x, node.y, r, ratio);
+
+            // 成長建議（尚未具備的技能）：藍色虛線外圈
+            if (node.status === "recommended") {
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, r + 2, 0, Math.PI * 2);
+              ctx.strokeStyle = "rgba(96, 165, 250, 0.9)";
+              ctx.lineWidth = 2;
+              ctx.setLineDash([4, 3]);
+              ctx.stroke();
+              ctx.restore();
+            }
 
             // label
             const label = String(node.name ?? node.id);

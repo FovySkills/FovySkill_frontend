@@ -1,155 +1,254 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+// 上傳區：履歷（必填）＋ 作品集 PDF／圖片（選填）＋ GitHub 連結（選填）→ 一次送出
+import React, { useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatBytes, LIMITS, validateSelection, type UploadSelection } from "@/app/lib/domain/upload";
+import { progressRatio, STATUS_LABEL } from "@/app/lib/domain/submission";
+import { useSkillmapSubmission } from "@/app/lib/useSkillmapSubmission";
 
 interface UploadAreaProps {
   show: boolean;
   setShow: React.Dispatch<React.SetStateAction<boolean>>;
   onUploadSuccess?: () => void;
-  setGraphData: (graphData: string | null) => void; // ✅ 改成 string setter
+  setGraphData: (graphData: string | null) => void;
 }
 
-export default function UploadArea({
-  show,
-  setShow,
-  onUploadSuccess,
-  setGraphData,
-}: UploadAreaProps) {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+const EMPTY: UploadSelection = { resume: null, portfolio: [], images: [], githubUrl: "" };
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+function isImageFile(f: File) {
+  return f.type.startsWith("image/") || /\.(png|jpe?g|webp)$/i.test(f.name);
+}
 
-    const file = files[0];
-    setFileName(file.name);
+export default function UploadArea({ show, setShow, onUploadSuccess, setGraphData }: UploadAreaProps) {
+  const resumeRef = useRef<HTMLInputElement | null>(null);
+  const portfolioRef = useRef<HTMLInputElement | null>(null);
+  const [sel, setSel] = useState<UploadSelection>(EMPTY);
+  const [dragging, setDragging] = useState<"resume" | "portfolio" | null>(null);
 
-    if (!file.name.toLowerCase().endsWith(".pdf")) {
-      alert("Please select a PDF file");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      alert("File size too large. Maximum 10MB allowed");
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-
-      const formData = new FormData();
-      formData.append("pdf_file", file);
-
-      const res = await fetch("/api/document/upload/", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (!res.ok) throw new Error("Upload failed");
-
-      const data = await res.json();
-      
-      // Next.js jsonOk 回傳格式為 { ok: true, data: "..." }
-      // 而 generate API 直接回傳 string，所以樹狀 JSON 字串就在 data.data
-      let graphObj = typeof data?.data === "string" ? data.data : (data?.data?.data ?? null);
-      
-      const nextGraphData = graphObj === null ? null : typeof graphObj === "string" ? graphObj : JSON.stringify(graphObj);
-      setGraphData(nextGraphData);
-
-      onUploadSuccess?.();
+  const { state, submit, reset } = useSkillmapSubmission((graph) => {
+    setGraphData(graph);
+    onUploadSuccess?.();
+    setTimeout(() => {
+      setSel(EMPTY);
       setShow(false);
-    } catch (e) {
-      console.error(e);
-      alert("Upload failed. Please try again.");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+    }, 600);
+  });
+
+  const busy = state.phase === "uploading" || state.phase === "polling";
+  const errors = useMemo(() => (sel.resume || sel.portfolio.length || sel.images.length || sel.githubUrl ? validateSelection(sel) : []), [sel]);
+
+  function close(force = false) {
+    if (state.phase === "uploading" && !force) return; // 上傳中不允許關閉
+    if (state.phase === "polling" && !force) {
+      setShow(false); // 生成中：只收起視窗，背景繼續 polling，完成後自動更新地圖
+      return;
     }
-  };
+    setSel(EMPTY);
+    reset();
+    setShow(false);
+  }
+
+  function addResume(files: FileList | null) {
+    const f = files?.[0];
+    if (f) setSel((s) => ({ ...s, resume: f }));
+  }
+
+  function addPortfolio(files: FileList | null) {
+    if (!files) return;
+    const list = Array.from(files);
+    setSel((s) => ({
+      ...s,
+      portfolio: [...s.portfolio, ...list.filter((f) => !isImageFile(f))].slice(0, LIMITS.portfolioMaxFiles + 1),
+      images: [...s.images, ...list.filter(isImageFile)].slice(0, LIMITS.imageMaxFiles + 1),
+    }));
+  }
+
+  function removeAt(kind: "portfolio" | "images", idx: number) {
+    setSel((s) => ({ ...s, [kind]: s[kind].filter((_, i) => i !== idx) }));
+  }
+
+  const canSubmit = !!sel.resume && errors.length === 0 && !busy;
 
   return (
     <AnimatePresence>
       {show && (
         <>
           <motion.div
-            className="fixed inset-0 bg-black/50 z-[200]"
+            className="fixed inset-0 bg-black/60 z-[200]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => {
-              if (isUploading) return; // 上傳中不允許關閉
-              setFileName(null);
-              setShow(false);
-            }}
+            onClick={() => close()}
           />
 
           <motion.div
-            className={`fixed bottom-20 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center w-80 h-60 rounded-xl border-2 border-dashed cursor-pointer z-[300]
-              ${dragging ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-gray-100"} transition-colors`}
+            className="fixed bottom-16 left-1/2 -translate-x-1/2 w-[560px] max-w-[92vw] rounded-2xl bg-zinc-100 text-zinc-800 shadow-2xl z-[300] p-6"
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 50, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragging(false);
-              if (!isUploading) handleFiles(e.dataTransfer.files); // 上傳中忽略新拖入
-            }}
           >
-            <input
-              type="file"
-              accept=".pdf"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={(e) => handleFiles(e.target.files)}
-            />
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-lg">上傳資料，生成技能地圖</h2>
+              <button type="button" onClick={() => close()} disabled={state.phase === "uploading"} className="text-zinc-500 hover:text-zinc-800 disabled:opacity-30" aria-label="關閉">
+                ✕
+              </button>
+            </div>
 
-            <div className="mb-2 text-blue-400">
-              {isUploading ? (
-                <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-12 h-12"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z"
+            {busy ? (
+              <Progress statusText={state.status ? STATUS_LABEL[state.status] : "上傳中…"} ratio={state.status ? progressRatio(state.status) : 0.05} />
+            ) : (
+              <div className="space-y-4">
+                {/* 1. 履歷 */}
+                <section>
+                  <Label n={1} title="履歷" hint="PDF，必填，10MB 以內" />
+                  <DropZone
+                    active={dragging === "resume"}
+                    onClick={() => resumeRef.current?.click()}
+                    onDrag={(on) => setDragging(on ? "resume" : null)}
+                    onDropFiles={addResume}
+                  >
+                    {sel.resume ? (
+                      <FileRow name={sel.resume.name} size={sel.resume.size} onRemove={() => setSel((s) => ({ ...s, resume: null }))} />
+                    ) : (
+                      <span className="text-sm text-zinc-500">拖曳或點擊選擇履歷 PDF</span>
+                    )}
+                  </DropZone>
+                  <input ref={resumeRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { addResume(e.target.files); e.target.value = ""; }} />
+                </section>
+
+                {/* 2. 作品集 */}
+                <section>
+                  <Label n={2} title="作品集" hint={`選填：PDF 最多 ${LIMITS.portfolioMaxFiles} 份、圖片最多 ${LIMITS.imageMaxFiles} 張`} />
+                  <DropZone
+                    active={dragging === "portfolio"}
+                    onClick={() => portfolioRef.current?.click()}
+                    onDrag={(on) => setDragging(on ? "portfolio" : null)}
+                    onDropFiles={addPortfolio}
+                  >
+                    {sel.portfolio.length + sel.images.length === 0 ? (
+                      <span className="text-sm text-zinc-500">拖曳或點擊加入作品集 PDF、作品截圖（PNG / JPG / WebP）</span>
+                    ) : (
+                      <div className="w-full space-y-1" onClick={(e) => e.stopPropagation()}>
+                        {sel.portfolio.map((f, i) => <FileRow key={`p${i}`} name={f.name} size={f.size} onRemove={() => removeAt("portfolio", i)} />)}
+                        {sel.images.map((f, i) => <FileRow key={`i${i}`} name={f.name} size={f.size} onRemove={() => removeAt("images", i)} />)}
+                        <button type="button" className="text-xs text-blue-600 underline" onClick={() => portfolioRef.current?.click()}>+ 再加一個</button>
+                      </div>
+                    )}
+                  </DropZone>
+                  <input
+                    ref={portfolioRef}
+                    type="file"
+                    multiple
+                    accept="application/pdf,.pdf,image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(e) => { addPortfolio(e.target.files); e.target.value = ""; }}
                   />
-                </svg>
-              )}
-            </div>
+                </section>
 
-            <div className="text-blue-700 font-semibold mb-2">.PDF</div>
-            <div className="font-semibold text-gray-800 mb-1">Drag / Upload your CV</div>
-            <div className="text-gray-500 text-sm text-center">
-              let us map your skills automatically.<br />
-              PDF format required
-            </div>
+                {/* 3. GitHub */}
+                <section>
+                  <Label n={3} title="GitHub" hint="選填：個人頁或 repo 連結" />
+                  <input
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://github.com/your-name 或 https://github.com/your-name/project"
+                    value={sel.githubUrl}
+                    onChange={(e) => setSel((s) => ({ ...s, githubUrl: e.target.value }))}
+                    className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </section>
 
-            {fileName && (
-              <div className="mt-2 text-gray-700 text-sm truncate w-full text-center">
-                {fileName}
+                {(errors.length > 0 || state.error) && (
+                  <ul className="text-xs text-red-600 space-y-0.5 whitespace-pre-line">
+                    {state.error && <li>{state.error}</li>}
+                    {errors.map((e) => <li key={e}>{e}</li>)}
+                  </ul>
+                )}
+
+                <button
+                  type="button"
+                  disabled={!canSubmit}
+                  onClick={() => submit(sel)}
+                  className="w-full rounded-full bg-zinc-900 text-white py-3 font-medium disabled:opacity-40"
+                >
+                  生成技能地圖
+                </button>
+                <p className="text-[11px] text-zinc-500 text-center">
+                  檔案只用於分析你的技能；圖片會移除 EXIF（含拍攝位置）等資訊。
+                </p>
               </div>
             )}
           </motion.div>
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+function Label({ n, title, hint }: { n: number; title: string; hint: string }) {
+  return (
+    <div className="flex items-baseline gap-2 mb-1.5">
+      <span className="text-xs w-5 h-5 rounded-full bg-zinc-900 text-white inline-flex items-center justify-center">{n}</span>
+      <span className="font-medium text-sm">{title}</span>
+      <span className="text-xs text-zinc-500">{hint}</span>
+    </div>
+  );
+}
+
+function DropZone({
+  active,
+  onClick,
+  onDrag,
+  onDropFiles,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  onDrag: (on: boolean) => void;
+  onDropFiles: (f: FileList | null) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onClick()}
+      onDragOver={(e) => { e.preventDefault(); onDrag(true); }}
+      onDragLeave={() => onDrag(false)}
+      onDrop={(e) => { e.preventDefault(); onDrag(false); onDropFiles(e.dataTransfer.files); }}
+      className={`min-h-[64px] rounded-lg border-2 border-dashed px-3 py-3 flex items-center justify-center cursor-pointer transition-colors ${
+        active ? "border-blue-500 bg-blue-50" : "border-zinc-300 bg-white hover:border-zinc-400"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function FileRow({ name, size, onRemove }: { name: string; size: number; onRemove: () => void }) {
+  return (
+    <div className="w-full flex items-center justify-between text-sm">
+      <span className="truncate">{name}</span>
+      <span className="flex items-center gap-3 shrink-0">
+        <span className="text-xs text-zinc-500">{formatBytes(size)}</span>
+        <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(); }} className="text-zinc-400 hover:text-red-500" aria-label={`移除 ${name}`}>✕</button>
+      </span>
+    </div>
+  );
+}
+
+function Progress({ statusText, ratio }: { statusText: string; ratio: number }) {
+  return (
+    <div className="py-6 flex flex-col items-center gap-4">
+      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <div className="text-sm">{statusText}</div>
+      <div className="w-full h-2 rounded-full bg-zinc-200 overflow-hidden">
+        <div className="h-full bg-blue-500 transition-all duration-700" style={{ width: `${Math.round(ratio * 100)}%` }} />
+      </div>
+      <p className="text-[11px] text-zinc-500">通常需要 20–60 秒；關掉頁面也會在背景完成，之後可在「使用紀錄」查看。</p>
+    </div>
   );
 }

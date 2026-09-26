@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import OptionBar from "./Component/OptionBar";
@@ -8,9 +8,9 @@ import ServicesBar from "./Component/ServicesBar";
 import Sidebar from "./Component/Sidebar";
 import SkillMap from "./Component/SkillMap";
 import Growth from "./Component/Growth";
-import UploadArea from "./Component/UploadArea";
 
 import { useSkillmapStore } from "@/app/lib/skillmapStore";
+import { filterGraph, parseGraph, serializeGraph } from "@/app/lib/domain/graph";
 
 export default function SkillMapPage() {
   const router = useRouter();
@@ -18,7 +18,6 @@ export default function SkillMapPage() {
   const [showSkillMap, setShowSkillMap] = useState(true);
   const [showGrowth, setShowGrowth] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [showUpload, setShowUpload] = useState(false);
 
   const { graphData, updatedAt, setGraphData, clearGraph } = useSkillmapStore();
 
@@ -40,9 +39,15 @@ export default function SkillMapPage() {
   }
 
   const handleUploadSuccess = () => {
-    // 直接切換到成長地圖分頁，因為 UploadArea 已經將最新的圖表資料寫入全域狀態了
-    showGrowthController();
+    // UploadArea 已把新的圖寫入全域狀態，切到技能地圖分頁
+    showSkillMapController();
   };
+
+  // 技能地圖只顯示已具備的技能；成長地圖多顯示推薦的延伸技能
+  const ownedGraph = useMemo(() => {
+    const g = parseGraph(graphData);
+    return g ? serializeGraph(filterGraph(g, { includeRecommended: false })) : null;
+  }, [graphData]);
 
   // 1) check session
   useEffect(() => {
@@ -115,10 +120,8 @@ export default function SkillMapPage() {
         }
 
         const json = await res.json();
-        const tree = json?.data?.data ?? null;
-
-        const nextGraphData =
-          tree === null ? null : typeof tree === "string" ? tree : JSON.stringify(tree);
+        const graph = json?.data?.graph ?? null;
+        const nextGraphData = graph === null ? null : JSON.stringify(graph);
 
         if (!alive) return;
         setGraphData(nextGraphData);
@@ -149,13 +152,6 @@ export default function SkillMapPage() {
 
   return (
     <>
-      <UploadArea
-        show={showUpload}
-        setShow={setShowUpload}
-        onUploadSuccess={handleUploadSuccess}
-        setGraphData={setGraphData}
-      />
-
       {!showSidebar && (
         <SidebarButton showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
       )}
@@ -179,12 +175,17 @@ export default function SkillMapPage() {
             </div>
           )}
 
-          {!loadingGraph && showSkillMap && <SkillMap graphData={graphData} />}
+          {!loadingGraph && showSkillMap && <SkillMap graphData={ownedGraph} />}
           {!loadingGraph && showGrowth && <Growth graphData={graphData} />}
         </div>
 
         <div className="h-full w-full relative">
-          <ServicesBar RouterHandler={RouterHandler} setGraphData={setGraphData} />
+          <ServicesBar
+            RouterHandler={RouterHandler}
+            setGraphData={setGraphData}
+            onUploadSuccess={handleUploadSuccess}
+            onHistory={() => router.push("/History")}
+          />
         </div>
       </div>
     </>

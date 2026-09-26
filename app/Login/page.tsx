@@ -3,9 +3,10 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import React, { useState } from "react"
+import GoogleSignInButton from "../Component/GoogleSignInButton"
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
@@ -20,7 +21,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       })
 
       const contentType = res.headers.get("content-type") || ""
@@ -37,10 +38,7 @@ export default function LoginPage() {
         return
       }
 
-      const msg =
-        typeof payload === "string" ? "Login ok" : payload?.message || "Login ok"
-      // setMessage(msg)
-      route.push("/Dashboard")
+      route.push("/Growth")
     } catch (err: any) {
       setMessage(err?.message || "Network error")
     } finally {
@@ -83,7 +81,7 @@ export default function LoginPage() {
           <h1 className="text-[28px] text-zinc-200 tracking-wide">Map Your Future.</h1>
         </div>
 
-        <div className="w-[450px] h-[450px] rounded-full shadow-[0_0_80px_20px_rgba(255,255,255,0.3)] flex flex-col items-center justify-center relative">
+        <div className="w-[500px] h-[500px] rounded-full shadow-[0_0_80px_20px_rgba(255,255,255,0.3)] flex flex-col items-center justify-center relative">
 
           <form onSubmit={handleLogin} className="w-full flex flex-col items-center space-y-4">
             <div className="relative w-[320px]">
@@ -95,9 +93,10 @@ export default function LoginPage() {
               <input
                 type="text"
                 required
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-transparent border border-zinc-700 rounded-full py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-zinc-500 transition-colors"
               />
             </div>
@@ -129,7 +128,14 @@ export default function LoginPage() {
             </div>
           </form>
 
-          <div className="mt-6 text-xs text-zinc-400">
+          <div className="mt-4 flex items-center gap-3 w-[320px] text-[11px] text-zinc-500">
+            <div className="flex-1 h-px bg-zinc-700" />或<div className="flex-1 h-px bg-zinc-700" />
+          </div>
+          <div className="mt-3">
+            <GoogleSignInButton text="signin_with" />
+          </div>
+
+          <div className="mt-4 text-xs text-zinc-400">
             Don't have a FOVY account? <Link href="/Signup" className="underline text-zinc-200">Sign up</Link>
           </div>
 
