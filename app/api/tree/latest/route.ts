@@ -1,50 +1,23 @@
+// app/api/tree/latest/route.ts — 目前使用者最新的技能地圖（身分由 tree-service 從 token 驗證，不再傳 user_id）
 import { SERVICES } from "@/app/lib/services";
 import { getValidAccessToken } from "@/app/lib/auth";
-import { jsonFail } from "@/app/lib/apiResponse";
-
-function decodeJwtPayload(token: string) {
-  const parts = token.split(".");
-  if (parts.length !== 3) throw new Error("Invalid JWT");
-  return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
-}
+import { gatewayFetch } from "@/app/lib/gatewayFetch";
+import { jsonFail, jsonOk } from "@/app/lib/apiResponse";
 
 export async function GET() {
-  const access = await getValidAccessToken(); // ✅ 会自动 refresh
+  const access = await getValidAccessToken();
   if (!access) return jsonFail("Unauthorized", 401);
 
-  let userId: string | number | undefined;
   try {
-    const payload = decodeJwtPayload(access);
-    userId = payload.user_id;
-  } catch (e: any) {
-    return jsonFail("Bad token", 400, { message: e?.message });
+    const { res, data } = await gatewayFetch("/api/v1/skillmaps/latest", {
+      baseUrl: SERVICES.tree.baseUrl,
+      accessToken: access,
+      timeoutMs: 5000,
+    });
+    if (res.status === 404) return jsonFail("No skill map yet", 404);
+    if (!res.ok) return jsonFail("Latest tree failed", res.status);
+    return jsonOk(data?.data);
+  } catch (e) {
+    return jsonFail(String(e instanceof Error ? e.message : e).includes("timeout") ? "Tree service timeout" : "Tree service unreachable", 503);
   }
-
-  if (!userId) return jsonFail("Missing user_id", 401);
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 3000);
-
-  let upstream: Response;
-  try {
-    upstream = await fetch(
-      `${SERVICES.tree.baseUrl}/api/v1/tree/latest/${userId}`,
-      {
-        method: "GET",
-        headers: { Authorization: `Bearer ${access}` },
-        cache: "no-store",
-        signal: controller.signal,
-      }
-    );
-  } catch (e: any) {
-    const isTimeout = e?.name === "AbortError";
-    return jsonFail(isTimeout ? "Tree service timeout" : "Tree service unreachable", 503);
-  } finally {
-    clearTimeout(timer);
-  }
-
-  const data = await upstream.json().catch(() => null);
-  if (!upstream.ok) return jsonFail("Latest tree failed", upstream.status, data);
-
-  return Response.json({ ok: true, data });
 }

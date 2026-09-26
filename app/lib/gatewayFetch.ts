@@ -44,17 +44,15 @@ export async function gatewayFetch(path: string, opts: GatewayFetchOptions) {
       : await res.text().catch(() => null);
 
     return { res, data };
-  } catch (err: any) {
-    // ✅ 不要 err.message = ...
-    const name = err?.name || "";
-    const isAbort =
-      name === "AbortError" || String(err?.cause || "").includes("AbortError");
+  } catch (err) {
+    const e = err as { name?: string; message?: string; cause?: unknown };
+    const isAbort = e?.name === "AbortError" || String(e?.cause || "").includes("AbortError");
 
     if (isAbort) {
       throw new Error(`gatewayFetch timeout after ${timeoutMs}ms`, { cause: err });
     }
 
-    throw new Error(`gatewayFetch failed: ${err?.message || String(err)}`, { cause: err });
+    throw new Error(`gatewayFetch failed: ${e?.message || String(err)}`, { cause: err });
   } finally {
     clearTimeout(timer);
   }

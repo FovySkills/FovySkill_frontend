@@ -1,0 +1,13 @@
+// app/api/tree/maps/route.ts — 歷次生成結果（不含整棵樹）
+import { SERVICES } from "@/app/lib/services";
+import { getValidAccessToken } from "@/app/lib/auth";
+import { gatewayFetch } from "@/app/lib/gatewayFetch";
+import { jsonFail, jsonOk } from "@/app/lib/apiResponse";
+
+export async function GET() {
+  const access = await getValidAccessToken();
+  if (!access) return jsonFail("Unauthorized", 401);
+  const { res, data } = await gatewayFetch("/api/v1/skillmaps?limit=50", { baseUrl: SERVICES.tree.baseUrl, accessToken: access });
+  if (!res.ok) return jsonFail("Failed to load skill maps", res.status);
+  return jsonOk(data?.data ?? []);
+}

@@ -1,6 +1,8 @@
 // lib/rbac.ts
 import "server-only";
+import { decodeClaims } from "./domain/jwt";
 
+<<<<<<< HEAD
 function base64urlDecode(str: string) {
   // Node 可用 Buffer
   const pad = str.length % 4 === 0 ? "" : "=".repeat(4 - (str.length % 4));
@@ -22,15 +24,19 @@ export function decodeJwtPayload(token: string): JwtPayload | null {
   } catch {
     return null;
   }
+=======
+export function decodeJwtPayload(token: string) {
+  return decodeClaims(token);
+>>>>>>> feat/skillmap-v2
 }
 
 export function hasEmployeeAdminRole(accessToken: string) {
-  const payload = decodeJwtPayload(accessToken);
+  const payload = decodeClaims(accessToken) as (Record<string, unknown> | null);
   const role = payload?.role;
   const roles = payload?.roles;
   const userType = payload?.user_type;
   const set = new Set<string>([
-    ...(Array.isArray(roles) ? roles : []),
+    ...(Array.isArray(roles) ? (roles as string[]) : []),
     ...(typeof role === "string" ? [role] : []),
     ...(typeof userType === "string" ? [userType] : []),
   ]);

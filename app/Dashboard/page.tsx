@@ -114,6 +114,7 @@ export default function Dashboard() {
     router.push(pageName)
   }
 
+<<<<<<< HEAD
   const isManager = String(me?.user_type ?? "").toLowerCase() === "manager"
 
   return (
@@ -145,6 +146,29 @@ export default function Dashboard() {
           />
         </div>
       </div>
+=======
+  return (
+    <div className="grid grid-cols-1 w-full h-screen">
+      <div className="w-full max-w-[1000px] h-full mx-auto flex">
+      <SelectionCard
+        title="我要成長"
+        description="技能提升"
+        icon="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
+        image="./graphLeft.svg"
+        ButtonAction={() => RedirectToPage("/Growth")}
+        buttonLayout="shadow-[10px_0_20px_2px_rgba(200,80,60,0.7),-10px_0_20px_2px_rgba(230,190,40,0.6)]"
+        subtitle="上傳履歷 生成技能地圖 看見成長路徑"
+      />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => RedirectToPage("/History")}
+        className="fixed bottom-8 right-8 rounded-full border border-white/40 px-5 py-2 text-sm text-white/90 shadow-[0_0_24px_rgba(0,0,0,0.8)] hover:bg-white/10"
+      >
+        使用紀錄
+      </button>
+>>>>>>> feat/skillmap-v2
 
       {!isVisible && <UserBar setVisible={setVisible} />}
 

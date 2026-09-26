@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { ENV } from "./app/lib/env"
+<<<<<<< HEAD
 
 function isPublic(pathname: string) {
   const exactMatches = [
@@ -23,6 +24,10 @@ function isPublic(pathname: string) {
   ]
   return prefixMatches.some((prefix) => pathname.startsWith(prefix))
 }
+=======
+import { decodeClaims, needsOnboarding } from "./app/lib/domain/jwt"
+import { decideRoute } from "./app/lib/domain/routing"
+>>>>>>> feat/skillmap-v2
 
 function decodeJwtPayload(token: string): { exp?: number } | null {
   const parts = token.split(".")
@@ -51,29 +56,22 @@ export default function middleware(req: NextRequest) {
 
   const access = req.cookies.get(ENV.ACCESS_COOKIE)?.value
   const refresh = req.cookies.get(ENV.REFRESH_COOKIE)?.value
+<<<<<<< HEAD
   const isLogged = isUnexpiredJwt(access) || isUnexpiredJwt(refresh)
+=======
+>>>>>>> feat/skillmap-v2
 
-  // 若已登入但試圖訪問登入、註冊頁面，自動導向到 Dashboard
-  if (isLogged) {
-    const authPages = ["/Login", "/Signup", "/CreateUser"];
-    if (authPages.includes(pathname)) {
-      return NextResponse.redirect(new URL("/Dashboard", req.url));
-    }
-  }
+  // 只用來決定導頁（不是驗證）：access token 過期時 onboarded 資訊仍可讀
+  const decision = decideRoute(pathname, {
+    loggedIn: !!(access || refresh),
+    needsOnboarding: needsOnboarding(decodeClaims(access) ?? decodeClaims(refresh)),
+  })
 
-  // 若為公開頁面，且不是上面攔截的登入頁面，順利放行 (例如首頁 /)
-  if (isPublic(pathname)) return NextResponse.next()
-
-  // 若非公開頁面且已登入，放行
-  if (isLogged) return NextResponse.next()
-
-  // 若為 API 路徑且未登入，回傳 401
-  if (pathname.startsWith("/api/")) {
+  if (decision.action === "redirect") return NextResponse.redirect(new URL(decision.to, req.url))
+  if (decision.action === "unauthorized") {
     return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 })
   }
-
-  // 其餘情況 (未登入且訪問需要權限的畫面)，導向登入頁面
-  return NextResponse.redirect(new URL("/Login", req.url))
+  return NextResponse.next()
 }
 
 export const config = {

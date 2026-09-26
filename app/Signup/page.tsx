@@ -3,8 +3,9 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import React, { useEffect, useState } from "react"
+import GoogleSignInButton from "../Component/GoogleSignInButton"
 
-export default function LoginPage() {
+export default function SignupPage() {
     const [fullName, setFullName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -51,13 +52,17 @@ export default function LoginPage() {
 
         setLoading(true)
         try {
+            // 公開註冊一律是一般使用者；角色由管理者在後台調整
             const bodyObj = {
-                username: fullName,
-                email: email,
+                display_name: fullName.trim(),
+                email: email.trim(),
                 password: password,
+<<<<<<< HEAD
                 user_type: "employee",
                 department_id: 1,
                 department_name: "1",
+=======
+>>>>>>> feat/skillmap-v2
             }
 
             const res = await fetch("/api/auth/register", {
@@ -83,11 +88,18 @@ export default function LoginPage() {
               return
             }
 
+<<<<<<< HEAD
             alert("註冊成功，請登入")
             route.push("/Login")
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : String(err)
             alert(`❌ fetch 失敗：${message}`)
+=======
+            // 註冊成功即登入
+            route.push("/Growth")
+        } catch (err: any) {
+            alert(`❌ fetch 失敗：${err?.message || String(err)}`)
+>>>>>>> feat/skillmap-v2
         } finally {
             setLoading(false)
         }
@@ -115,7 +127,8 @@ export default function LoginPage() {
                             </div>
                             <input
                                 type="text"
-                                placeholder="User account"
+                                placeholder="你的名字（顯示用）"
+                                autoComplete="name"
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
                                 className="w-full bg-transparent border border-zinc-700 rounded-full py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-zinc-500 transition-colors"
@@ -190,6 +203,13 @@ export default function LoginPage() {
                     </form>
 
                     
+
+                    <div className="mt-6 flex items-center gap-3 text-[11px] text-zinc-500">
+                        <div className="flex-1 h-px bg-zinc-700" />或<div className="flex-1 h-px bg-zinc-700" />
+                    </div>
+                    <div className="mt-4 flex justify-center">
+                        <GoogleSignInButton text="signup_with" />
+                    </div>
 
                     <div className="mt-8 text-center text-xs text-zinc-400">
                         Already have an account? <Link href="/Login" className="underline text-zinc-200">Log in</Link>
