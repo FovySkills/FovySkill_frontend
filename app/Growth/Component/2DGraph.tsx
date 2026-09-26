@@ -11,12 +11,12 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
   ssr: false,
 });
 
-<<<<<<< HEAD
 type NodeT = {
   id?: string | number;
   name?: string;
   level?: number;
   score?: number;
+  status?: "owned" | "recommended";
   x?: number;
   y?: number;
   fx?: number;
@@ -24,10 +24,6 @@ type NodeT = {
   [key: string]: unknown;
 };
 type LinkT = { source: string | number | NodeT; target: string | number | NodeT };
-=======
-type NodeT = { id: string; name: string; level: number; score: number; status?: "owned" | "recommended" };
-type LinkT = { source: string; target: string };
->>>>>>> feat/skillmap-v2
 type GraphT = { nodes: NodeT[]; links: LinkT[] };
 type TreeNode = NodeT & {
   id: string;
@@ -376,7 +372,7 @@ function SkillTree2D({ data }: { data: GraphT }) {
             if (node.status === "recommended") {
               ctx.save();
               ctx.beginPath();
-              ctx.arc(node.x, node.y, r + 2, 0, Math.PI * 2);
+              ctx.arc(x, y, r + 2, 0, Math.PI * 2);
               ctx.strokeStyle = "rgba(96, 165, 250, 0.9)";
               ctx.lineWidth = 2;
               ctx.setLineDash([4, 3]);

@@ -3,13 +3,9 @@
 // 上傳區：履歷（必填）＋ 作品集 PDF／圖片（選填）＋ GitHub 連結（選填）→ 一次送出
 import React, { useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-<<<<<<< HEAD
-import { readJsonResponse, toSkillGraphDataString } from "@/app/lib/skillGraph";
-=======
 import { formatBytes, LIMITS, validateSelection, type UploadSelection } from "@/app/lib/domain/upload";
 import { progressRatio, STATUS_LABEL } from "@/app/lib/domain/submission";
 import { useSkillmapSubmission } from "@/app/lib/useSkillmapSubmission";
->>>>>>> feat/skillmap-v2
 
 interface UploadAreaProps {
   show: boolean;
@@ -30,50 +26,11 @@ export default function UploadArea({ show, setShow, onUploadSuccess, setGraphDat
   const [sel, setSel] = useState<UploadSelection>(EMPTY);
   const [dragging, setDragging] = useState<"resume" | "portfolio" | null>(null);
 
-<<<<<<< HEAD
-    if (!file.name.toLowerCase().endsWith(".pdf")) {
-      alert("Please select a PDF file");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      alert("File size too large. Maximum 10MB allowed");
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-
-      const formData = new FormData();
-      formData.append("pdf_file", file);
-
-      const res = await fetch("/api/document/upload/", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        setGraphData(null);
-        const errorPayload = await readJsonResponse(res);
-        const message =
-          errorPayload && typeof errorPayload === "object" && "message" in errorPayload
-            ? String((errorPayload as { message?: unknown }).message)
-            : "Upload failed";
-        throw new Error(message);
-      }
-
-      const data = await readJsonResponse(res);
-      setGraphData(toSkillGraphDataString(data));
-
-      onUploadSuccess?.();
-=======
   const { state, submit, reset } = useSkillmapSubmission((graph) => {
     setGraphData(graph);
     onUploadSuccess?.();
     setTimeout(() => {
       setSel(EMPTY);
->>>>>>> feat/skillmap-v2
       setShow(false);
     }, 600);
   });
@@ -229,8 +186,6 @@ export default function UploadArea({ show, setShow, onUploadSuccess, setGraphDat
     </AnimatePresence>
   );
 }
-<<<<<<< HEAD
-=======
 
 function Label({ n, title, hint }: { n: number; title: string; hint: string }) {
   return (
@@ -297,4 +252,3 @@ function Progress({ statusText, ratio }: { statusText: string; ratio: number }) 
     </div>
   );
 }
->>>>>>> feat/skillmap-v2

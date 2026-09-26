@@ -8,12 +8,10 @@ import ServicesBar from "./Component/ServicesBar";
 import Sidebar from "./Component/Sidebar";
 import SkillMap from "./Component/SkillMap";
 import Growth from "./Component/Growth";
-<<<<<<< HEAD
-import UploadArea from "./Component/UploadArea";
 import DetailCard, { type Metric } from "./Component/DetailCard";
 
 import { useSkillmapStore } from "@/app/lib/skillmapStore";
-import { readJsonResponse, toSkillGraphDataString } from "@/app/lib/skillGraph";
+import { filterGraph, parseGraph, serializeGraph } from "@/app/lib/domain/graph";
 
 type SelectedSkillNode = {
   id?: string | number;
@@ -46,11 +44,6 @@ function getNodeMetrics(node: SelectedSkillNode): Metric[] {
 
   return [{ label: "技能分數", value: Number(node.score ?? 0) }];
 }
-=======
-
-import { useSkillmapStore } from "@/app/lib/skillmapStore";
-import { filterGraph, parseGraph, serializeGraph } from "@/app/lib/domain/graph";
->>>>>>> feat/skillmap-v2
 
 export default function SkillMapPage() {
   const router = useRouter();
@@ -58,11 +51,7 @@ export default function SkillMapPage() {
   const [showSkillMap, setShowSkillMap] = useState(true);
   const [showGrowth, setShowGrowth] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
-<<<<<<< HEAD
-  const [showUpload, setShowUpload] = useState(false);
   const [selectedSkillNode, setSelectedSkillNode] = useState<SelectedSkillNode | null>(null);
-=======
->>>>>>> feat/skillmap-v2
 
   const { graphData, updatedAt, setGraphData, clearGraph } = useSkillmapStore();
 
@@ -165,14 +154,9 @@ export default function SkillMapPage() {
           throw new Error(`Request failed: ${res.status}`);
         }
 
-<<<<<<< HEAD
-        const json = await readJsonResponse(res);
-        const nextGraphData = toSkillGraphDataString(json);
-=======
         const json = await res.json();
         const graph = json?.data?.graph ?? null;
         const nextGraphData = graph === null ? null : JSON.stringify(graph);
->>>>>>> feat/skillmap-v2
 
         if (!alive) return;
         setGraphData(nextGraphData);
@@ -230,16 +214,9 @@ export default function SkillMapPage() {
             </div>
           )}
 
-<<<<<<< HEAD
           {!loadingGraph && showSkillMap && (
-            <SkillMap
-              graphData={graphData}
-              onNodeSelect={setSelectedSkillNode}
-            />
+            <SkillMap graphData={ownedGraph} onNodeSelect={setSelectedSkillNode} />
           )}
-=======
-          {!loadingGraph && showSkillMap && <SkillMap graphData={ownedGraph} />}
->>>>>>> feat/skillmap-v2
           {!loadingGraph && showGrowth && <Growth graphData={graphData} />}
 
           {!loadingGraph && showSkillMap && selectedSkillNode && (

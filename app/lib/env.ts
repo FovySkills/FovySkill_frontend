@@ -5,14 +5,6 @@ function url(name: string, fallback: string) {
 }
 
 export const ENV = {
-<<<<<<< HEAD
-  // AUTH_BASE: process.env.AUTH_SVC_BASE_URL!,
-  // DOC_BASE: process.env.DOCUMENT_SVC_BASE_URL!,
-  // TREE_BASE: process.env.TREE_SVC_BASE_URL!,
-  AUTH_BASE: "http://34.63.132.167:8001",
-  DOC_BASE: "http://34.63.132.167:8003",
-  TREE_BASE: "http://34.63.132.167:8002",
-=======
   AUTH_BASE: url("AUTH_SVC_BASE_URL", "http://localhost:8001"),
   DOC_BASE: url("DOCUMENT_SVC_BASE_URL", "http://localhost:8003"),
   TREE_BASE: url("TREE_SVC_BASE_URL", "http://localhost:8002"),
@@ -22,7 +14,6 @@ export const ENV = {
   DOCUMENT_PUBLIC_URL: url("DOCUMENT_PUBLIC_URL", process.env.DOCUMENT_SVC_BASE_URL || "http://localhost:8003"),
   // 與 document-service 的 UPLOAD_TICKET_SECRET 相同
   UPLOAD_TICKET_SECRET: process.env.UPLOAD_TICKET_SECRET || "",
->>>>>>> feat/skillmap-v2
 
   ACCESS_COOKIE: process.env.ACCESS_COOKIE || "access_token",
   REFRESH_COOKIE: process.env.REFRESH_COOKIE || "refresh_token",

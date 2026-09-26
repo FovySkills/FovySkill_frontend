@@ -57,12 +57,6 @@ export default function SignupPage() {
                 display_name: fullName.trim(),
                 email: email.trim(),
                 password: password,
-<<<<<<< HEAD
-                user_type: "employee",
-                department_id: 1,
-                department_name: "1",
-=======
->>>>>>> feat/skillmap-v2
             }
 
             const res = await fetch("/api/auth/register", {
@@ -88,18 +82,10 @@ export default function SignupPage() {
               return
             }
 
-<<<<<<< HEAD
-            alert("註冊成功，請登入")
-            route.push("/Login")
-        } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : String(err)
-            alert(`❌ fetch 失敗：${message}`)
-=======
             // 註冊成功即登入
             route.push("/Growth")
-        } catch (err: any) {
-            alert(`❌ fetch 失敗：${err?.message || String(err)}`)
->>>>>>> feat/skillmap-v2
+        } catch (err: unknown) {
+            alert(`❌ fetch 失敗：${err instanceof Error ? err.message : String(err)}`)
         } finally {
             setLoading(false)
         }

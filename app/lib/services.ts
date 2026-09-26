@@ -3,14 +3,8 @@
 import { ENV } from "./env";
 
 export const SERVICES = {
-<<<<<<< HEAD
-  auth: { baseUrl: ENV.AUTH_BASE, healthPath: "/health/" },
-  document: { baseUrl: ENV.DOC_BASE, healthPath: "/api/document/health/" },
-  tree: { baseUrl: ENV.TREE_BASE, healthPath: "/health/" },
-=======
   auth: { baseUrl: ENV.AUTH_BASE, healthPath: "/api/auth/health/" },
   document: { baseUrl: ENV.DOC_BASE, healthPath: "/api/document/health/" },
   tree: { baseUrl: ENV.TREE_BASE, healthPath: "/api/v1/health" },
   activity: { baseUrl: ENV.ACTIVITY_BASE, healthPath: "/api/activity/health" },
->>>>>>> feat/skillmap-v2
 } as const;
